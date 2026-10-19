@@ -49,13 +49,14 @@ object SessionHistoryText {
  /** Indício visual somente: nunca mesclar registros nem contar o tempo sem monitoramento. */
  fun possibleContinuation(previous: SessionBoundary, next: SessionBoundary): Boolean {
   val gap = next.started - previous.ended
+  // Limite EXCLUSIVO do agrupamento visual; cada registro continua separado no Room.
   return previous.closed && previous.mode == next.mode &&
    previous.mode in setOf(Mode.CHARGING, Mode.DISCHARGING) &&
    previous.final == next.initial && previous.final in 0..100 &&
    previous.started <= previous.ended && next.started <= next.ended &&
    previous.reason !in setOf("Estado alterado", "Histórico restaurado", "Fonte de carga alterada", "Leitura indisponível") &&
    previous.chargeSource == next.chargeSource && previous.chargerLabel == next.chargerLabel &&
-   gap in 0L..180_000L
+   gap in 0L..300_000L
  }
 }
 

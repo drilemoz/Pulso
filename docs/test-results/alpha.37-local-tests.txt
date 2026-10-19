@@ -1,0 +1,14 @@
+Pulso Bateria alpha.37 — validação local 18/10/2026
+13/13 UI contracts grouping, menus and averages PASS
+9/9 Kotlin grouping JUnit-compatible execution PASS
+6/6 Kotlin DischargeForecast tests PASS
+7/7 Kotlin ChargeForecast tests PASS
+Kotlin core compiled PASS
+3 Kotlin sources parsed by PSI PASS (no syntax errors)
+19/19 navigation; 16/16 Home; 21/21 Settings PASS
+Labs history contracts PASS
+SQLite 15/15 PASS (test harness ResourceWarnings only)
+External API 26/26 static contracts + 16/16 policy invariants PASS
+validate_source PASS
+Gradle Android build NOT run: wrapper cannot fetch gradle-8.11.1 from services.gradle.org (UnknownHostException)
+Room v8 / backup v6 unchanged. Grouping-only cap 300000ms; device collection gap is untouched.

@@ -1,3 +1,26 @@
+# Validação — Pulso Bateria 0.1.0-alpha.37 / versionCode 37
+
+## Mudanças e limites
+
+- Histórico compacto: cinco controles na mesma linha; o layout só desliza horizontalmente em larguras/fontes reduzidas.
+- Alternância de agrupamento “Unir ≤5 min” no cabeçalho, junto da ajuda. `SessionHistoryText.possibleContinuation` aceita 0..300.000 ms, somente mesmo modo, percentual na fronteira, mesma fonte e motivo compatível; a coleta real mantém intervalo de descontinuidade próprio de até 180.000 ms.
+- Novo resumo de autonomia de 100% e recarga de 0–100% baseado exclusivamente em sessões **finalizadas** elegíveis para o histórico do core. São extrapolações; não correspondem necessariamente a ciclos completos e não contabilizam lacunas nem mudam dados.
+- Room v8 / backup v6, AIDL da alpha.36, sensores, fluxo Labs, serviço e Secrets não foram alterados.
+
+## Testes da alpha.37 (18/10/2026)
+
+- `python tools/validate_source.py`: **PASS** (versões, XML, Manifest, Wrapper oficial SHA-256/CRC).
+- `python tools/test_session_grouping_ui.py`: **13/13 PASS** (contratos estáticos de agrupamento, posição dos controles, histórico e estimativas).
+- Kotlin/JVM efetivo: **22/22 testes PASS** (9 de agrupamento visual, 6 de autonomia e 7 de recarga), compilados com `kotlinc` e executor local de anotações JUnit; testados o limite 5min inclusive, 5min+1ms exclusivo e fonte diferente.
+- `kotlinc core/src/main/kotlin/.../*.kt`: **PASS**; parser Kotlin PSI: **3 arquivos Kotlin analisados, 0 erros sintáticos**, inclusive tela Compose (não prova resolução de APIs Android).
+- Navegação **19/19**, Home **16/16**, configurações **21/21**, Labs **PASS**, SQLite **15/15 PASS**, com `ResourceWarning` de conexões de teste não fechadas no harness, sem falhas.
+- API multiapp preservada: **26/26 contratos estáticos PASS** e **16/16 invariantes de política Kotlin/JVM PASS**.
+- `./gradlew :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --offline --no-daemon`: **falhou antes de iniciar build**, `UnknownHostException: services.gradle.org` ao baixar distribuição Gradle 8.11.1. Sem APK validado neste ambiente.
+- **Pendentes:** compilação Android/Compose, testes no dispositivo (fontes grandes/contraste/rolagem), teste do histórico com dados reais e atualização instalada. Não prometer que a alpha.37 já funciona no aparelho.
+
+
+---
+
 # Validação — Pulso Bateria 0.1.0-alpha.36 / versionCode 36
 
 ## Escopo

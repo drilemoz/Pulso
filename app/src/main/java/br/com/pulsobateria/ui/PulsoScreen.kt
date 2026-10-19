@@ -7,6 +7,9 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
@@ -21,6 +24,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
@@ -586,36 +590,66 @@ private fun History(sessions: List<Session>, settings: Settings, reading: Readin
   val day = SimpleDateFormat("yyyy-MM-dd",locale)
   filteredGroups.groupBy { day.format(Date(it.first().started)) }
  }
- LazyColumn(modifier.fillMaxSize(),contentPadding=PaddingValues(horizontal=16.dp,vertical=12.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
+ // Média histórica independente do filtro visual, usando apenas sessões já finalizadas.
+ // Forecasts do core exigem observação mínima e taxa coerente. Nenhuma lacuna é reconstruída.
+ val completedSessions = remember(sessions) { sessions.filter { it.closed } }
+ val averageAutonomy = remember(completedSessions,screenNow) {
+  DischargeForecast.history(completedSessions.map { HistoricalDischarge(it.started,it.ended,it.durationMs,it.initial,it.final,it.samples,it.mode) },screenNow)
+ }
+ val averageCharging = remember(completedSessions,screenNow) {
+  ChargeForecast.history(completedSessions.map { HistoricalCharge(it.started,it.ended,it.durationMs,it.initial,it.final,it.samples,it.mode,it.chargeSource) },screenNow,null)
+ }
+ val canCompare = remember(sessions) { sessions.count { it.mode=="CHARGING" && it.closed && it.samples>=2 }>=2 }
+ LazyColumn(modifier.fillMaxSize(),contentPadding=PaddingValues(horizontal=16.dp,vertical=10.dp),verticalArrangement=Arrangement.spacedBy(10.dp)) {
   item(key="history-header") {
-   Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
-    Text("Histórico de bateria",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold)
-    IconButton(onClick={showInfo=true}) { Icon(Icons.Default.Info,"Como funcionam as sessões") }
+   Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+    Text("Histórico",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f))
+    Text("Unir ≤5 min",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=1)
+    Switch(checked=groupNearby,onCheckedChange={groupNearby=it},modifier=Modifier.scale(.78f))
+    IconButton(onClick={showInfo=true}) { Icon(Icons.Default.Info,"Entenda a união e as médias das sessões") }
    }
   }
-  item(key="history-tools") {
-   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-    OutlinedButton(onClick=onCompare,enabled=sessions.count { it.mode=="CHARGING" && it.closed && it.samples>=2 }>=2,modifier=Modifier.weight(1f)) {
-     Icon(Icons.Default.DateRange,null,Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("Comparar",maxLines=1)
-    }
-    OutlinedButton(onClick=onReports,modifier=Modifier.weight(1f)) {
-     Icon(Icons.Default.Info,null,Modifier.size(18.dp)); Spacer(Modifier.width(4.dp)); Text("Relatórios",maxLines=1)
+  item(key="history-tools-one-row") {
+   // Cinco ações na MESMA linha. Apenas em telas/fontes muito estreitas há rolagem horizontal.
+   BoxWithConstraints(Modifier.fillMaxWidth()) {
+    val buttonWidth=((maxWidth-16.dp)/5).coerceAtLeast(68.dp)
+    Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),horizontalArrangement=Arrangement.spacedBy(4.dp)) {
+     listOf("Comparar","Relatórios","Todas","Carga","Descarga").forEachIndexed { index,label ->
+      val selected=index>=2 && filter==index-2
+      val enabled=index!=0 || canCompare
+      Surface(onClick={ if(index==0) onCompare() else if(index==1) onReports() else filter=index-2 },
+       enabled=enabled,modifier=Modifier.width(buttonWidth).height(42.dp),shape=RoundedCornerShape(14.dp),
+       border=BorderStroke(1.dp,if(selected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.outlineVariant),
+       color=if(selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surface) {
+       Box(Modifier.fillMaxSize().padding(horizontal=2.dp),contentAlignment=Alignment.Center) {
+        Text(label,maxLines=1,overflow=TextOverflow.Ellipsis,fontSize=11.sp,
+         color=if(!enabled) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha=.45f)
+          else if(selected) MaterialTheme.colorScheme.onSecondaryContainer
+          else if(index<2) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+         fontWeight=if(selected) FontWeight.SemiBold else FontWeight.Medium)
+       }
+      }
+     }
     }
    }
   }
-  item(key="history-filters") {
-   SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
-    listOf("Todas","Carga","Descarga").forEachIndexed { index,label ->
-     SegmentedButton(selected=filter==index,onClick={filter=index},shape=SegmentedButtonDefaults.itemShape(index,3),label={
-      Text(label,style=MaterialTheme.typography.labelMedium,maxLines=1,overflow=TextOverflow.Ellipsis)
-     })
+  item(key="history-average") {
+   Card(colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface),shape=RoundedCornerShape(18.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal=14.dp,vertical=12.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically) {
+      Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)) {
+       Text("Autonomia · 100%",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+       Text(averageAutonomy?.fullBatteryMs?.let(::durationText) ?: "Sem dados",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold,color=MaterialTheme.colorScheme.primary)
+      }
+      VerticalDivider(Modifier.height(46.dp),color=MaterialTheme.colorScheme.outlineVariant)
+      Column(Modifier.weight(1f).padding(start=12.dp),verticalArrangement=Arrangement.spacedBy(3.dp)) {
+       Text("Recarga · 0–100%",style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+       Text(averageCharging?.fullChargeMs?.let(::durationText) ?: "Sem dados",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold,color=MaterialTheme.colorScheme.secondary)
+      }
+     }
+     Text("Equivalência histórica: ${averageAutonomy?.sessionsUsed ?: 0} descargas e ${averageCharging?.sessionsUsed ?: 0} recargas válidas. Não é previsão exata; toque em ⓘ para entender.",
+      style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
     }
-   }
-  }
-  item(key="history-group-toggle") {
-   Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
-    Text("Agrupar sessões próximas",style=MaterialTheme.typography.bodyMedium,modifier=Modifier.weight(1f))
-    Switch(checked=groupNearby,onCheckedChange={groupNearby=it})
    }
   }
   if(filteredGroups.isEmpty()) item(key="history-empty") {
@@ -642,7 +676,7 @@ private fun History(sessions: List<Session>, settings: Settings, reading: Readin
   }
  }
  if(showInfo) AlertDialog(onDismissRequest={showInfo=false},title={Text("Sobre as sessões")},text={
-  Text("Os cartões podem reunir visualmente sessões de carga ou descarga interrompidas e retomadas no mesmo percentual em até 3 minutos, sem uma mudança de estado ou fonte conhecida entre elas. Isso não garante continuidade física: todos os registros continuam separados no banco e podem ser inspecionados ao expandir. A duração exibida soma apenas tempos observados, e nunca os intervalos sem coleta. A média do cartão agrupado é indicativa, não uma medição de corrente.\n\nO selo ATUAL aparece apenas com leitura recente da sessão aberta. Interrupções do processo, atualizações e reinícios podem originar novos registros. O histórico conserva até 500 resumos, com até 480 pontos por sessão. Gráficos das sessões originais não são unidos por linhas fictícias.")
+  Text("Unir ≤5 min: a chave reúne apenas na tela sessões consecutivas do mesmo tipo, com o mesmo percentual na passagem, sem mudança conhecida de fonte/carregador e com interrupção compatível. A lacuna entre o fim de uma e o início da próxima pode ser de 0 a 5 minutos; acima de 5 minutos os cartões ficam separados. Uma mudança de estado ou de fonte também impede a união. Os registros originais continuam separados no banco e aparecem em Ver originais. Minutos sem observação NÃO entram na duração ou na taxa, nem são preenchidos artificialmente.\n\nAutonomia 100%: equivalente de descarga calculado pelas sessões FINALIZADAS válidas (mínimo de observações e variação), somando os pontos percentuais perdidos e o tempo efetivamente observado. Recarga 0–100%: equivalente calculado da mesma forma, apenas com recargas finalizadas válidas, inclusive parciais. São médias históricas ponderadas pelos tempos observados e EXTRAPOLADAS para 100 pontos percentuais; não significam que um ciclo completo foi medido nem garantem o uso atual. Se faltarem dados, aparece Sem dados. A união dos cartões não altera essas médias.\n\nO selo ATUAL exige leitura recente e sessão aberta. Reinícios podem criar registros novos. O histórico conserva até 500 resumos e até 480 pontos por sessão; gráficos originais nunca atravessam lacunas com linhas inventadas.")
  },confirmButton={TextButton(onClick={showInfo=false}){Text("Entendi")}})
 }
 

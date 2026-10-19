@@ -1,7 +1,14 @@
 # Pulso Bateria
 
-**0.1.0-alpha.36 • versionCode 36** — Android nativo, Kotlin e Jetpack Compose.
+**0.1.0-alpha.37 • versionCode 37** — Android nativo, Kotlin e Jetpack Compose.
 Android 8.0/API 26 ou superior. Identidade: `br.com.pulsobateria`.
+
+## Novidades da alpha.37 — Histórico de Sessões mais compacto
+
+- **Uma linha de ações/filtros:** Comparar, Relatórios, Todas, Carga e Descarga. Layout compacto com rolagem horizontal apenas se a tela ou a fonte não permitir 5 opções lado a lado.
+- **União opcional perto da ajuda:** seção renomeada para Histórico, opção “Unir ≤5 min” no cabeçalho, com detalhes no botão ⓘ. Só reúne visualmente sessões consecutivas de mesmo estado/percentual, fonte compatível e interrupção conhecida; lacunas de até 5 minutos (inclusive) são aceitas, acima disso são separadas. Dados persistidos continuam individuais.
+- **Resumo no espaço liberado:** duração equivalente de autonomia 100% e de recarga 0–100%, baseada em sessões anteriores **finalizadas e válidas**; se não houver observação suficiente, “Sem dados”. Utiliza os estimadores históricos do core já existentes; médias ponderadas pelo tempo observado, nunca soma lacunas nem assume ciclos completos.
+- Ajuda explica método, limites e agrupamento; Room v8, backup JSON v6, API AIDL multiaplicativos, Labs, serviço e medição não foram alterados. O limite de 5 min é do **agrupamento visual**; a formação/coleta de sessões reais mantém suas regras próprias.
 
 ## Novidades da alpha.36 — Multiaplicativos na API Labs
 

@@ -27,10 +27,24 @@ class SessionHistoryGroupingTest {
   val b=segment(121_000,181_000,65,63)
   assertEquals(listOf(listOf(0),listOf(1),listOf(2)),SessionHistoryText.groupConsecutive(listOf(a,full,b)))
  }
- @Test fun refusesMismatchedBoundaryAndGapBeyondThreeMinutes() {
+ @Test fun refusesMismatchedBoundaryAndGapBeyondFiveMinutes() {
   val a=segment(1_000,100_000,80,70)
   assertEquals(2,SessionHistoryText.groupConsecutive(listOf(a,segment(100_000,200_000,69,68))).size)
-  assertEquals(2,SessionHistoryText.groupConsecutive(listOf(a,segment(280_001,350_000,70,68))).size)
+  assertEquals(2,SessionHistoryText.groupConsecutive(listOf(a,segment(400_001,480_000,70,68))).size)
+ }
+ @Test fun exactlyFiveMinutesCanGroupButFiveMinutesPlusOneMillisecondCannot() {
+  val a=segment(1_000,100_000,80,70)
+  val exact=segment(400_000,480_000,70,68)
+  val over=segment(400_001,480_000,70,68)
+  assertTrue(SessionHistoryText.possibleContinuation(a,exact))
+  assertEquals(listOf(listOf(0,1)),SessionHistoryText.groupConsecutive(listOf(a,exact)))
+  assertFalse(SessionHistoryText.possibleContinuation(a,over))
+  assertEquals(listOf(listOf(0),listOf(1)),SessionHistoryText.groupConsecutive(listOf(a,over)))
+ }
+ @Test fun keepsOriginalsWhenGapShortButPhysicalSourceChanges() {
+  val a=segment(1_000,100_000,20,30,mode=Mode.CHARGING,source="USB")
+  val b=segment(390_000,420_000,30,31,mode=Mode.CHARGING,source="AC")
+  assertEquals(2,SessionHistoryText.groupConsecutive(listOf(a,b)).size)
  }
  @Test fun refusesDifferentChargeSourcesAndManualNames() {
   val a=segment(1_000,100_000,10,20,mode=Mode.CHARGING,source="USB",charger="Solar")

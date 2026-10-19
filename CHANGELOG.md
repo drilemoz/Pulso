@@ -1,3 +1,11 @@
+## 0.1.0-alpha.37 (18/10/2026)
+
+- Aba Sessões compacta cinco controles em uma linha: Comparar, Relatórios, Todas, Carga, Descarga, com rolagem horizontal caso necessário para acessibilidade.
+- “Agrupar sessões próximas” foi movido para o cabeçalho com o rótulo “Unir ≤5 min”, ao lado do botão de ajuda.
+- O agrupamento visual aceita somente até 300.000 ms entre registros compatíveis; >300.000 ms permanece em cartões separados. Fonte, percentual, direção, interrupção conhecida e preservação dos originais continuam obrigatórios.
+- Novo cartão com duração histórica equivalente de descarga com 100% e recarga de 0% a 100%, baseado apenas em sessões finalizadas e elegíveis pelo núcleo atual. Exibe falta de dados em vez de extrapolação vazia; explicações adicionais na ajuda.
+- Sem alteração em Room v8/backup JSON v6, monitoramento, Labs, API AIDL, assinaturas ou Secrets. Teste real de Compose/Android pendente.
+
 ## 0.1.0-alpha.36 (17/10/2026)
 
 - API Labs permite até 20 aplicativos autorizados simultaneamente, mantendo autorização e último ID próprios, seleção por aplicativo e revogação individual/global.

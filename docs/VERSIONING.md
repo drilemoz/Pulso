@@ -1,7 +1,9 @@
 # Versionamento
 
-Versão atual: **0.1.0-alpha.36**, **versionCode 36**.
-Próxima entrega: **0.1.0-alpha.37**, **versionCode 37**.
+Versão atual: **0.1.0-alpha.37**, **versionCode 37**.
+Próxima entrega: **0.1.0-alpha.38**, **versionCode 38**.
+
+Alpha.37: interface Sessões com 5 controles em uma linha, resumo histórico 100%/0–100% (somente sessões finalizadas) e agrupamento visual opcional com lacuna máxima de 5 minutos, sem tocar em Room v8, backup v6, AIDL, monitoramento ou dados salvos. Próxima alpha.38 / 38.
 
 Alpha.36: múltiplos clientes autorizados por pacote+certificado, até 20, migração da autorização alpha.35 em DataStore, revogação individual, AIDL v1 inalterado; Room v8 e backup v6 preservados. Próxima alpha.37 / 37.
 

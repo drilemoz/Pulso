@@ -1,6 +1,14 @@
 # Pulso Bateria
 
-**0.1.0-alpha.46 • versionCode 46** — Android nativo, Kotlin e Jetpack Compose.
+**0.1.0-alpha.49 • versionCode 49** — Android nativo, Kotlin e Jetpack Compose.
+
+## Novidades da alpha.49
+
+- Exportação de comparação A/B em CSV via área de transferência, com unidades no cabeçalho e campos ausentes vazios; sem permissão de armazenamento.
+
+- Barras de duração proporcional na comparação solar, com segmentos carregando, sem carga e sem leitura; nenhum gráfico de corrente sem amostras temporais.
+
+- Comparação de dois testes solares concluídos no Labs, com seleção A/B, variação em pontos percentuais, carga confirmada, corrente média e cobertura. Sem dados fabricados nem mudanças de banco.
 
 ## Novidades da alpha.46
 

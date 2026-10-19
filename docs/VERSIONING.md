@@ -1,6 +1,6 @@
 # Versionamento
 
-Versão atual: **0.1.0-alpha.46**, **versionCode 46**.
+Versão atual: **0.1.0-alpha.49**, **versionCode 49**.
 
 Cada alteração no projeto deve aumentar sequencialmente o `versionCode` e o `versionName`, além de sincronizar README, CHANGELOG, RELEASE_NOTES e documentação de validação.
 
@@ -13,3 +13,9 @@ Alpha.42: teste estático de regressão Compose e correção de histórico do CH
 Alpha.45: diagnóstico de origem e atualidade da consulta, sem alterar cálculos ou persistência. Próxima alpha.47 / 47.
 
 Alpha.46: indicação de evidência de previsão, sem alteração de fórmulas. Próxima alpha.47 / 47.
+
+Alpha.47: comparação A/B de testes solares concluídos; próxima alpha.50 / 50.
+
+Alpha.48: Barras de duração proporcional na comparação solar, com segmentos carregando, sem carga e sem leitura; nenhum gráfico de corrente sem amostras temporais. Próxima alpha.49 / 49.
+
+Alpha.49: Exportação de comparação A/B em CSV via área de transferência, com unidades no cabeçalho e campos ausentes vazios; sem permissão de armazenamento. Próxima alpha.50 / 50.

@@ -1,10 +1,5 @@
-# Validação — Pulso Bateria 0.1.0-alpha.46 / versionCode 46
+# Validação — Pulso Bateria 0.1.0-alpha.49 / versionCode 49
 
-## Alterações
-Classificação da evidência disponível para previsões de carga/descarga, sem modificar taxas, tempos estimados, banco, backup ou API AIDL.
+Exportação de comparação A/B em CSV via área de transferência, com unidades no cabeçalho e campos ausentes vazios; sem permissão de armazenamento.
 
-## Testes
-Validações estáticas e 15 testes SQLite locais aprovados, incluindo regressão Compose e consistência de release. Novos testes Kotlin/JVM escritos, não presumir que passaram sem execução.
-
-## Pendências
-Compilação Android, lint e testes em aparelho físico permanecem pendentes caso não executados no ambiente.
+Room v8, backup v6 e AIDL sem alterações. Executar validações locais e registrar resultados; compilação Android e testes em aparelho não executados neste ambiente.

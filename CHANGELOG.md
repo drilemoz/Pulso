@@ -1,3 +1,15 @@
+## 0.1.0-alpha.49 (19/10/2026)
+- Exportação de comparação A/B em CSV via área de transferência, com unidades no cabeçalho e campos ausentes vazios; sem permissão de armazenamento.
+- Room v8, backup JSON v6 e API AIDL inalterados.
+
+## 0.1.0-alpha.48 (19/10/2026)
+- Barras de duração proporcional na comparação solar, com segmentos carregando, sem carga e sem leitura; nenhum gráfico de corrente sem amostras temporais.
+- Room v8, backup JSON v6 e API AIDL inalterados.
+
+## 0.1.0-alpha.47 (19/10/2026)
+- Labs: comparação de dois testes solares concluídos com dados observados e aviso de limitações.
+- Room v8, backup v6, cálculo e AIDL preservados.
+
 ## 0.1.0-alpha.46 (19/10/2026)
 
 - Contexto de evidência das previsões de carga e descarga, sem alterar o cálculo.

@@ -1,4 +1,13 @@
-# Pulso Bateria 0.1.0-alpha.46
+# Pulso Bateria 0.1.0-alpha.49
+
+## Novidade da alpha.49
+
+- Exportação de comparação A/B em CSV via área de transferência, com unidades no cabeçalho e campos ausentes vazios; sem permissão de armazenamento.
+
+- Barras de duração proporcional na comparação solar, com segmentos carregando, sem carga e sem leitura; nenhum gráfico de corrente sem amostras temporais.
+
+Comparação A/B de dois testes solares concluídos no Labs, com variação de bateria, tempo de carga confirmado, corrente média válida e cobertura. A comparação é descritiva, sem atribuir causalidade ao painel nem preencher lacunas.
+
 
 Novidade: indicação de evidência da previsão de carga/descarga, sem porcentagens artificiais de confiança.
 
@@ -22,6 +31,6 @@ Auditoria de consistência de release e correção do CHANGELOG histórico. Sem 
 - Faixas térmicas ancoradas no limite configurado em Ajustes, para melhor adaptação entre aparelhos.
 - Sem mudanças no banco, backup, Labs ou API AIDL.
 
-APK esperado do GitHub Actions: `Pulso-Bateria-v0.1.0-alpha.46-debug.apk`. ZIP contém código-fonte, não APK.
+APK esperado do GitHub Actions: `Pulso-Bateria-v0.1.0-alpha.49-debug.apk`. ZIP contém código-fonte, não APK.
 
 Diagnóstico: idade da consulta de bateria visível em Configurações > Fonte de medição > Dados técnicos.

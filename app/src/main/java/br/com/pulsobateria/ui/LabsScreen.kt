@@ -52,6 +52,8 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
  val active by vm.labCurrent.collectAsState()
  val history by vm.labHistory.collectAsState()
  var page by rememberSaveable { mutableStateOf("home") }
+ var solarCompareFirst by rememberSaveable { mutableStateOf<Long?>(null) }
+ var solarCompareSecond by rememberSaveable { mutableStateOf<Long?>(null) }
  var sky by rememberSaveable { mutableStateOf("nublado") }
  var panel by rememberSaveable { mutableStateOf("8") }
  var customWatts by rememberSaveable { mutableStateOf("") }
@@ -77,6 +79,7 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
  val validWatts=selectedWatts!=null && selectedWatts in 1..200
  val validDuration=timer=="manual" || selectedMinutes!=null && selectedMinutes in 1..1440
  val completed=history.filter { it.status != "RUNNING" }
+ val solarCompleted=completed.filter { it.kind == "SOLAR" }
  val isConfigPage=active==null && (page=="solar" || page=="discharge")
  Box(modifier.fillMaxSize()) {
  LazyColumn(Modifier.fillMaxSize(),
@@ -92,6 +95,7 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
      style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant) }
     item { LabMenuCard("☀️","Teste Solar","Carga, períodos sem carga e corrente média.") { page="solar" } }
     item { LabMenuCard("🔋","Teste de Consumo","Queda observada da bateria, sem fonte externa.") { page="discharge" } }
+    item { LabMenuCard("📊","Comparar testes solares","Compare dois testes concluídos sem inventar medições.") { page="compare" } }
     item {
      Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
       Text("Últimos testes",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold)
@@ -218,6 +222,45 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
     }
     if(vm.labError!=null) item { Text(vm.labError ?: "",color=MaterialTheme.colorScheme.error) }
    }
+   "compare" -> {
+    item { TextButton(onClick={page="home"}) { Text("‹ Voltar ao Labs") } }
+    item { Text("Comparar testes solares",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold) }
+    item { Text("Selecione dois testes diferentes. Condições e cobertura podem limitar a comparação; corrente líquida não é potência do painel.",style=MaterialTheme.typography.bodySmall) }
+    if(solarCompleted.size < 2) item { Text("São necessários dois testes solares concluídos.") }
+    items(solarCompleted,key={"compare_${it.id}"}) { test ->
+     val first=solarCompareFirst==test.id
+     val second=solarCompareSecond==test.id
+     OutlinedCard(Modifier.fillMaxWidth().clickable {
+      when {
+       first -> solarCompareFirst=null
+       second -> solarCompareSecond=null
+       solarCompareFirst==null -> solarCompareFirst=test.id
+       else -> solarCompareSecond=test.id
+      }
+     }) {
+      Row(Modifier.fillMaxWidth().padding(12.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+       RadioButton(selected=first || second,onClick=null)
+       Column(Modifier.weight(1f)) {
+        Text("${date(test.startedAt)} • ${skyLabel(test.sky)}")
+        Text("${test.panelWatts ?: "?"} W declarados • ${duration(((test.endedAt ?: test.startedAt)-test.startedAt).coerceAtLeast(0))}",style=MaterialTheme.typography.bodySmall)
+       }
+       if(first || second) Text(if(first) "A" else "B",fontWeight=FontWeight.Bold)
+      }
+     }
+    }
+    val a=solarCompleted.firstOrNull { it.id==solarCompareFirst }
+    val b=solarCompleted.firstOrNull { it.id==solarCompareSecond }
+    if(a!=null && b!=null && a.id!=b.id) {
+     item { SolarComparisonCard(a,b) }
+     item {
+      val clipboard=LocalContext.current.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+      Button(onClick={clipboard.setPrimaryClip(ClipData.newPlainText("Comparação solar CSV",solarComparisonCsv(a,b)))},modifier=Modifier.fillMaxWidth()) {
+       Text("Copiar comparação CSV")
+      }
+      Text("CSV com separador ponto e vírgula; importe como UTF-8. Dados ausentes ficam vazios.",style=MaterialTheme.typography.bodySmall)
+     }
+    }
+   }
    "history" -> {
     item { TextButton(onClick={page="home"}) { Text("‹ Voltar ao Labs") } }
     item { Text("Histórico de experimentos",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold) }
@@ -246,6 +289,74 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
    }
   }
  }
+ }
+}
+
+/** CSV seguro: somente números observados e texto de contexto normalizado. */
+private fun solarComparisonCsv(a: LabTest,b: LabTest): String {
+ fun row(label: String,t: LabTest): String {
+  val total=((t.endedAt ?: t.startedAt)-t.startedAt).coerceAtLeast(0L)
+  val mean=LabMath.meanMa(t.weightedMaMs,t.validCurrentMs)
+  val delta=if(t.initialPercent!=null && t.finalPercent!=null) (t.finalPercent-t.initialPercent).toString() else ""
+  val sky=t.sky.replace(Regex("[^a-zA-Z0-9_-]"),"")
+  return listOf(label,t.startedAt.toString(),(t.endedAt ?: t.startedAt).toString(),sky,t.panelWatts?.toString() ?: "",total.toString(),t.chargingMs.toString(),t.notChargingMs.toString(),LabMath.unknownMs(total,t.chargingMs,t.notChargingMs).toString(),delta,mean?.toString() ?: "",LabReportMath.coveragePercent(total,t.chargingMs,t.notChargingMs).toString()).joinToString(";")
+ }
+ return "teste;inicio_epoch_ms;fim_epoch_ms;ceu;potencia_painel_declarada_W;duracao_ms;carga_ms;sem_carga_ms;sem_leitura_ms;variacao_pontos_percentuais;corrente_liquida_media_mA;cobertura_percentual\n"+row("A",a)+"\n"+row("B",b)
+}
+
+@Composable
+private fun SolarComparisonCard(a: LabTest,b: LabTest) {
+ fun delta(t: LabTest): String = if(t.initialPercent!=null && t.finalPercent!=null)
+  "${t.finalPercent-t.initialPercent} p.p." else "Indisponível"
+ fun mean(t: LabTest): String = LabMath.meanMa(t.weightedMaMs,t.validCurrentMs)
+  ?.let { "${it.roundToInt()} mA" } ?: "Indisponível"
+ fun coverage(t: LabTest): String {
+  val total=((t.endedAt ?: t.startedAt)-t.startedAt).coerceAtLeast(0)
+  return "${LabReportMath.coveragePercent(total,t.chargingMs,t.notChargingMs)}%"
+ }
+ Card(colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surfaceVariant)) {
+  Column(Modifier.padding(16.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+   Text("Comparação A × B",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
+   Row(Modifier.fillMaxWidth()) {
+    Column(Modifier.weight(1f)) {
+     Text("A • ${skyLabel(a.sky)}",fontWeight=FontWeight.SemiBold)
+     Text("Bateria: ${delta(a)}")
+     Text("Carga confirmada: ${duration(a.chargingMs)}")
+     Text("Corrente média: ${mean(a)}")
+     Text("Cobertura: ${coverage(a)}")
+    }
+    Column(Modifier.weight(1f)) {
+     Text("B • ${skyLabel(b.sky)}",fontWeight=FontWeight.SemiBold)
+     Text("Bateria: ${delta(b)}")
+     Text("Carga confirmada: ${duration(b.chargingMs)}")
+     Text("Corrente média: ${mean(b)}")
+     Text("Cobertura: ${coverage(b)}")
+    }
+   }
+   Text("Distribuição do tempo observado",style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.SemiBold)
+   SolarDurationBar("A",a)
+   SolarDurationBar("B",b)
+   Text("Compare condições, duração e cobertura antes de interpretar diferenças. Médias são calculadas somente durante intervalos de carga com corrente válida. Não há interpolação de lacunas.",style=MaterialTheme.typography.bodySmall)
+  }
+ }
+}
+
+/** Barras proporcionais a intervalos registrados; nenhuma amostra é interpolada. */
+@Composable
+private fun SolarDurationBar(label: String,test: LabTest) {
+ val total=((test.endedAt ?: test.startedAt)-test.startedAt).coerceAtLeast(0L)
+ val charging=test.chargingMs.coerceAtLeast(0L).coerceAtMost(total)
+ val noCharge=test.notChargingMs.coerceAtLeast(0L).coerceAtMost(total-charging)
+ val unknown=(total-charging-noCharge).coerceAtLeast(0L)
+ Column(verticalArrangement=Arrangement.spacedBy(4.dp)) {
+  Text("$label: carga ${duration(charging)} • sem carga ${duration(noCharge)} • sem leitura ${duration(unknown)}",style=MaterialTheme.typography.bodySmall)
+  Row(Modifier.fillMaxWidth().height(12.dp).clip(RoundedCornerShape(8.dp))) {
+   if(total>0L) {
+    if(charging>0L) Box(Modifier.weight(charging.toFloat()/total).fillMaxHeight().background(MaterialTheme.colorScheme.primary))
+    if(noCharge>0L) Box(Modifier.weight(noCharge.toFloat()/total).fillMaxHeight().background(MaterialTheme.colorScheme.tertiary))
+    if(unknown>0L) Box(Modifier.weight(unknown.toFloat()/total).fillMaxHeight().background(MaterialTheme.colorScheme.outlineVariant))
+   } else Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.outlineVariant))
+  }
  }
 }
 

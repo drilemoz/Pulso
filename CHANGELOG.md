@@ -1,3 +1,9 @@
+## 0.1.0-alpha.46 (19/10/2026)
+
+- Contexto de evidência das previsões de carga e descarga, sem alterar o cálculo.
+- Testes Kotlin da classificação e atualização do versionamento.
+- Room v8, backup v6 e AIDL inalterados.
+
 ## 0.1.0-alpha.45 (19/10/2026)
 - Classifica a origem da corrente como instantânea, média, estimativa ou indisponível na tela de diagnóstico.
 - Sinaliza consultas antigas (>60 s), horário inválido e relógio retrocedido, sem alegar conhecer a idade interna do sensor.

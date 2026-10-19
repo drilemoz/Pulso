@@ -1,6 +1,6 @@
 # Versionamento
 
-Versão atual: **0.1.0-alpha.45**, **versionCode 45**.
+Versão atual: **0.1.0-alpha.46**, **versionCode 46**.
 
 Cada alteração no projeto deve aumentar sequencialmente o `versionCode` e o `versionName`, além de sincronizar README, CHANGELOG, RELEASE_NOTES e documentação de validação.
 
@@ -10,4 +10,6 @@ Alpha.41: consistência de versão verificada automaticamente no AGENTS.md e tes
 
 Alpha.42: teste estático de regressão Compose e correção de histórico do CHANGELOG. Próxima alpha.43 / 43.
 
-Alpha.45: diagnóstico de origem e atualidade da consulta, sem alterar cálculos ou persistência. Próxima alpha.46 / 46.
+Alpha.45: diagnóstico de origem e atualidade da consulta, sem alterar cálculos ou persistência. Próxima alpha.47 / 47.
+
+Alpha.46: indicação de evidência de previsão, sem alteração de fórmulas. Próxima alpha.47 / 47.

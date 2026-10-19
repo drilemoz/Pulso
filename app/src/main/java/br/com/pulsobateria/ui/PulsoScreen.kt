@@ -276,7 +276,7 @@ private fun MonitorScreen(r: Reading, s: Settings, telemetry: List<TelemetrySamp
      dischargeEta?.let { "Tempo restante: ${durationText(it.remainingMs)}" }
       ?: if(r.mode!=Mode.DISCHARGING) "Previsão disponível quando descarregando" else "Aguardando dados de descarga ou leitura recente"
     },
-    basis=if(charging) chargeEta?.let { it.basis+" • horário aproximado" } else dischargeEta?.let { it.basis+" • horário aproximado" },
+    basis=if(charging) chargeEta?.let { it.basis+" • "+(ForecastEvidenceClassifier.charge(it,chargeHistory)?.label ?: "Origem não classificada")+" • horário aproximado" } else dischargeEta?.let { it.basis+" • "+(ForecastEvidenceClassifier.discharge(it,autonomy)?.label ?: "Origem não classificada")+" • horário aproximado" },
     averageTitle=if(charging) "Carga média 0–100%" else "Média com 100%",
     averageValue=if(charging) chargeHistory?.let { durationText(it.fullChargeMs) } ?: "Dados insuficientes" else autonomy?.let { durationText(it.fullBatteryMs) } ?: "Dados insuficientes",
     averageDescription=if(charging) {

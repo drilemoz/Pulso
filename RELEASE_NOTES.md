@@ -1,4 +1,7 @@
-# Pulso Bateria 0.1.0-alpha.45
+# Pulso Bateria 0.1.0-alpha.46
+
+Novidade: indicação de evidência da previsão de carga/descarga, sem porcentagens artificiais de confiança.
+
 
 Diagnóstico: classificação da fonte da corrente e aviso de consulta antiga, sem mudar o cálculo.
 
@@ -19,6 +22,6 @@ Auditoria de consistência de release e correção do CHANGELOG histórico. Sem 
 - Faixas térmicas ancoradas no limite configurado em Ajustes, para melhor adaptação entre aparelhos.
 - Sem mudanças no banco, backup, Labs ou API AIDL.
 
-APK esperado do GitHub Actions: `Pulso-Bateria-v0.1.0-alpha.45-debug.apk`. ZIP contém código-fonte, não APK.
+APK esperado do GitHub Actions: `Pulso-Bateria-v0.1.0-alpha.46-debug.apk`. ZIP contém código-fonte, não APK.
 
 Diagnóstico: idade da consulta de bateria visível em Configurações > Fonte de medição > Dados técnicos.

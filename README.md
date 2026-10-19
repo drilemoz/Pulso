@@ -1,6 +1,11 @@
 # Pulso Bateria
 
-**0.1.0-alpha.45 • versionCode 45** — Android nativo, Kotlin e Jetpack Compose.
+**0.1.0-alpha.46 • versionCode 46** — Android nativo, Kotlin e Jetpack Compose.
+
+## Novidades da alpha.46
+
+- A previsão agora informa a evidência disponível (tendência atual, histórico limitado ou múltiplas sessões). Não apresenta porcentagem de confiança artificial.
+- Cálculo do tempo estimado permanece inalterado.
 
 ## Novidades da alpha.45
 

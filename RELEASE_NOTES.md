@@ -2,11 +2,11 @@
 
 - Tela Novidades exclusiva do build, abertura automática por versão e verificação obrigatória em preBuild e CI.
 
-# Pulso Bateria 0.1.0-alpha.55
+# Pulso Bateria 0.1.0-alpha.57
 
-## Novidades exclusivas da alpha.55
+## Novidades exclusivas da alpha.57
 
-- A verificação do build rejeita novidades vazias, repetidas e inconsistentes; novos testes de regressão.
+- Validação de correspondência entre Novidades e CHANGELOG da versão atual, com teste negativo.
 
 
 
@@ -45,8 +45,10 @@ Auditoria de consistência de release e correção do CHANGELOG histórico. Sem 
 - Faixas térmicas ancoradas no limite configurado em Ajustes, para melhor adaptação entre aparelhos.
 - Sem mudanças no banco, backup, Labs ou API AIDL.
 
-APK esperado do GitHub Actions: `Pulso-Bateria-v0.1.0-alpha.55-debug.apk`. ZIP contém código-fonte, não APK.
+APK esperado do GitHub Actions: `Pulso-Bateria-v0.1.0-alpha.57-debug.apk`. ZIP contém código-fonte, não APK.
 
 Diagnóstico: idade da consulta de bateria visível em Configurações > Fonte de medição > Dados técnicos.
 
 Alpha.53: Labs economiza atualizações em segundo plano com coleta lifecycle-aware e relógio visual suspenso fora da tela.
+
+Alpha.57: Novidades exclusivas do build, sem reutilização literal de itens antigos do CHANGELOG; teste de regressão do bloqueio. Próxima alpha.58 / 58.

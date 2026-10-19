@@ -2,7 +2,7 @@
 
 - Android Kotlin/Compose, offline, sem anúncios/rastreamento/INTERNET. Não inventar medições ou capacidades do aparelho.
 - Antes de editar, ler README, docs/MEASUREMENTS.md e docs/VERSIONING.md.
-- Versão atual 0.1.0-alpha.55 / versionCode 55. Próxima 0.1.0-alpha.56 / 56. Incrementar sequencialmente cada entrega e sincronizar todos os documentos, Gradle, workflow e nome do ZIP.
+- Versão atual 0.1.0-alpha.57 / versionCode 57. Próxima 0.1.0-alpha.57 / 57. Incrementar sequencialmente cada entrega e sincronizar todos os documentos, Gradle, workflow e nome do ZIP.
 - Preservar applicationId. Keystore privada e Secrets nunca entram no ZIP de código ou repositório. Para Debug atualizável, requer Secrets estáveis; sem Secrets a chave temporária deve receber aviso.
 - Manter cálculos no módulo core, testáveis sem Android; validar nulos, sentinelas, sinal, relógio e lacunas.
 - Não iniciar foreground service fora de ação permitida; manter tipo specialUse e sua justificativa, sem simular dataSync/health. Não adicionar wake locks, permissões privilegiadas ou mecanismos de evasão.
@@ -70,4 +70,8 @@
 
 - Alpha.54: Novidades por build em ReleaseNews.kt; atualizar VERSION_NAME, VERSION_CODE e ITEMS a cada versão, além de CHANGELOG. tools/check_release_news.py bloqueia preBuild e CI se houver divergência.
 
-- Alpha.55: verificação de Novidades reforçada e testes negativos obrigatórios; atualizar conteúdo por build. Próxima alpha.56 / 56.
+- Alpha.55: verificação de Novidades reforçada e testes negativos obrigatórios; atualizar conteúdo por build. Próxima alpha.57 / 56.
+
+- Alpha.56: gate de Novidades exige que cada item corresponda a um bullet no CHANGELOG da versão atual, impedindo notas sem correspondência; atualizar teste a cada release. Próxima alpha.57 / 57.
+
+Alpha.57: Novidades exclusivas do build, sem reutilização literal de itens antigos do CHANGELOG; teste de regressão do bloqueio. Próxima 0.1.0-alpha.58 / 58.

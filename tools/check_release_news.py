@@ -21,4 +21,11 @@ assert len(entries) == len(re.findall(r'^\s*"', items.group(1), re.M)), 'Item de
 headings = re.findall(r'^## (\S+)',changelog,re.M)
 assert headings and headings[0] == name.group(1), 'CHANGELOG deve começar pela versão do build'
 assert len(headings)==len(set(headings)), 'Versões duplicadas no CHANGELOG'
+current_section = changelog.splitlines()[1:]
+current_section = '\n'.join(current_section).split('\n## ', 1)[0]
+current_bullets = {line.removeprefix('- ').strip().casefold() for line in current_section.splitlines() if line.startswith('- ')}
+assert all(entry.strip().casefold() in current_bullets for entry in entries), 'Cada novidade deve constar no CHANGELOG da versão atual'
+previous_sections = changelog.split('\n## ', 1)[1] if '\n## ' in changelog else ''
+previous_bullets = {line.removeprefix('- ').strip().casefold() for line in previous_sections.splitlines() if line.startswith('- ')}
+assert not any(entry.strip().casefold() in previous_bullets for entry in entries), 'Novidades não podem repetir itens de builds anteriores'
 print('Release News OK:',name.group(1), 'code',code.group(1))

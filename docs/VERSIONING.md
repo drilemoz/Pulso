@@ -1,6 +1,6 @@
 # Versionamento
 
-Versão atual: **0.1.0-alpha.55**, **versionCode 55**.
+Versão atual: **0.1.0-alpha.57**, **versionCode 57**.
 
 Cada alteração no projeto deve aumentar sequencialmente o `versionCode` e o `versionName`, além de sincronizar README, CHANGELOG, RELEASE_NOTES e documentação de validação.
 
@@ -28,4 +28,6 @@ Alpha.52: Histórico: agrupamento e títulos de datas passam a considerar explic
 
 Alpha.53: coleta de estado Labs atrelada ao ciclo de vida; relógio apenas visual pausa fora da tela, retomando pelo horário real. Próxima alpha.54 / 54.
 
-Alpha.55: Novidades com testes de falha obrigatória para versões divergentes e itens inválidos. Próxima alpha.56.
+Alpha.55: Novidades com testes de falha obrigatória para versões divergentes e itens inválidos. Próxima alpha.57.
+
+Alpha.57: Novidades exclusivas do build, sem reutilização literal de itens antigos do CHANGELOG; teste de regressão do bloqueio. Próxima alpha.58 / 58.

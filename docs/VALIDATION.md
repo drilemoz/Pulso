@@ -1,6 +1,8 @@
-# Validação 0.1.0-alpha.55 (19/10/2026)
+# Validação 0.1.0-alpha.57 (19/10/2026)
 
-- `python3 tools/check_release_news.py`: executar antes do build.
-- `python3 tools/test_release_news_gate.py`: cinco cenários, incluindo falhas intencionais.
-- Scripts de regressão e integridade: verificados localmente quando indicado na entrega.
-- Gradle Android, emulador e testes físicos: pendentes até execução comprovada.
+- `tools/check_release_news.py`: aprovado.
+- `tools/test_release_news_gate.py`: 7 cenários aprovados.
+- `tools/validate_source.py`: aprovado.
+- `tools/test_release_consistency.py` e `tools/test_compose_regression.py`: executados separadamente; ver saída local.
+- Suíte completa tools/test_*.py: interrompida por limite de tempo, não declarar aprovada.
+- Gradle Android e testes físicos: não executados.

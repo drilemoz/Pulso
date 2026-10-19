@@ -12,12 +12,12 @@ import br.com.pulsobateria.BuildConfig
 
 /** Alterações exclusivas do build atual. Atualizar obrigatoriamente em cada release. */
 internal object ReleaseNews {
- const val VERSION_NAME = "0.1.0-alpha.55"
- const val VERSION_CODE = 55
+ const val VERSION_NAME = "0.1.0-alpha.57"
+ const val VERSION_CODE = 57
  val ITEMS = listOf(
-  "Validação reforçada das Novidades: verifica duplicações e textos vazios.",
-  "Teste de regressão garante que versões e notas incorretas interrompam o build.",
-  "Tela de Novidades preserva o acesso manual e o aviso uma vez por versão."
+  "Novidades rejeita itens copiados de versões anteriores para evitar anúncios repetidos.",
+  "A validação exige alterações exclusivas do build atual, registradas no CHANGELOG.",
+  "Testes de regressão verificam a rejeição de novidades reaproveitadas de releases antigos."
  )
 }
 

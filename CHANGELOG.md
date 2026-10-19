@@ -1,3 +1,17 @@
+## 0.1.0-alpha.57 (19/10/2026)
+
+- Novidades rejeita itens copiados de versões anteriores para evitar anúncios repetidos.
+- A validação exige alterações exclusivas do build atual, registradas no CHANGELOG.
+- Testes de regressão verificam a rejeição de novidades reaproveitadas de releases antigos.
+- Room v8, backup JSON v6, AIDL v1 e cálculos de bateria preservados.
+
+## 0.1.0-alpha.56 (19/10/2026)
+
+- As Novidades agora devem corresponder às alterações registradas no CHANGELOG deste build.
+- O build falha se uma novidade estiver ausente do CHANGELOG da versão atual.
+- Testes de regressão cobrem divergência entre Novidades e CHANGELOG.
+- Preservados Room v8, backup JSON v6, AIDL v1 e cálculos de medição.
+
 ## 0.1.0-alpha.55 (19/10/2026)
 
 - Reforçada a verificação obrigatória das Novidades: rejeita itens duplicados, vazios ou malformados.

@@ -151,7 +151,7 @@ fun PulsoScreen(onMonitor: (Boolean) -> Unit, openLabs: Boolean = false, vm: Pul
    }
   }
   if(limitations) AlertDialog(onDismissRequest={limitations=false},confirmButton={TextButton(onClick={limitations=false}){Text("Entendi")}},title={Text("Sobre as medições")},text={
-   Text("Os dados vêm do Android e dependem do sensor e do fabricante. Corrente positiva indica entrada líquida na bateria; negativa indica saída. O app usa µA e sinal Android. Ajustes da corrente instantânea exigem três janelas estáveis comparadas ao contador; isso não substitui calibração com instrumento. A média Android usa a janela desconhecida do hardware. Estar conectado não garante carga.\n\nA taxa local exige pelo menos 5 minutos e 2% de variação. A duração média com 100% usa só sessões de descarga; a duração equivalente de carga 0 a 100% usa apenas sessões carregando, inclusive parciais, com dados mínimos. Ambas combinam tendência atual e histórico quando disponíveis. Carregadores, fontes USB e energia solar podem apresentar taxas diferentes; perto de 100% a carga pode desacelerar. São estimativas, não garantias. A previsão do sistema só é aceita durante a carga quando compatível com a tendência medida.\n\nSem monitoramento contínuo, só registramos com o app visível. Pausas de até 90 segundos podem retomar a mesma sessão se estado e porcentagem permanecerem iguais; o tempo parado não entra na duração. Lacunas de coleta acima de 3 minutos criam outra sessão. O Android pode suspender o serviço. Não há coleta durante desligamento nem recuperação de intervalos perdidos. Temperatura é da bateria, não da CPU. Corrente não é potência nem capacidade em mAh.")
+   Text("Os dados vêm do Android e dependem do sensor e do fabricante. Corrente positiva indica entrada líquida na bateria; negativa indica saída. O app usa µA e sinal Android. Ajustes da corrente instantânea exigem três janelas estáveis comparadas ao contador; isso não substitui calibração com instrumento. A média Android usa a janela desconhecida do hardware. Estar conectado não garante carga.\n\nA taxa local exige pelo menos 5 minutos e 2% de variação. A duração média com 100% usa só sessões de descarga; a duração equivalente de carga 0 a 100% usa apenas sessões carregando, inclusive parciais, com dados mínimos. Ambas combinam tendência atual e histórico quando disponíveis. Carregadores, fontes USB e energia solar podem apresentar taxas diferentes; perto de 100% a carga pode desacelerar. São estimativas, não garantias. A previsão do sistema só é aceita durante a carga quando compatível com a tendência medida.\n\nSem monitoramento contínuo, só registramos com o app visível. Pausas de até 90 segundos podem retomar a mesma sessão se estado e porcentagem permanecerem iguais; o tempo parado não entra na duração. Lacunas de coleta acima de 3 minutos criam outra sessão. O Android pode suspender o serviço. Não há coleta durante desligamento nem recuperação de intervalos perdidos. Temperatura é da bateria, não da CPU. Na tela inicial, as cores da temperatura seguem faixas relativas ao limite térmico configurado em Ajustes. Corrente não é potência nem capacidade em mAh.")
   })
  }
 }
@@ -232,11 +232,12 @@ private fun MonitorScreen(r: Reading, s: Settings, telemetry: List<TelemetrySamp
   "(unidade declarada µA); CHARGE_COUNTER: ${r.currentInfo.rawCounter?.toString() ?: "indisponível"} µAh. " +
   "O resultado representa a corrente líquida na bateria, não a corrente do carregador."
  val temperatureLabel = "Temperatura"
+ val thermalUi = rememberThermalUi(r.temperature,s.hotBatteryAlert)
  val temperatureValue = r.temperature?.let {
   String.format(Locale.forLanguageTag("pt-BR"),"%.1f",if(s.fahrenheit) it*9/5+32 else it)
  } ?: "—"
  val temperatureDetails = if(r.temperature==null) "Sensor de temperatura da bateria indisponível. Não representa a temperatura da CPU."
- else "${temperatureText(r.temperature,s.fahrenheit)}. Medição do sensor da bateria, não da CPU."
+ else "${temperatureText(r.temperature,s.fahrenheit)} • ${thermalUi.details}. Medição do sensor da bateria, não da CPU."
  val rateLabel = if(charging) "Carga" else "Descarga"
  val rateValue = if(measuring) r.rate?.let {
   "${if(it>0) "+" else if(it<0) "−" else ""}${String.format(Locale.forLanguageTag("pt-BR"),"%.1f",abs(it))}"
@@ -276,7 +277,7 @@ private fun MonitorScreen(r: Reading, s: Settings, telemetry: List<TelemetrySamp
       ?: if(r.mode!=Mode.DISCHARGING) "Previsão disponível quando descarregando" else "Aguardando dados de descarga ou leitura recente"
     },
     basis=if(charging) chargeEta?.let { it.basis+" • horário aproximado" } else dischargeEta?.let { it.basis+" • horário aproximado" },
-    averageTitle=if(charging) "Média equivalente de 0 a 100%" else "Média com 100%",
+    averageTitle=if(charging) "Carga média 0–100%" else "Média com 100%",
     averageValue=if(charging) chargeHistory?.let { durationText(it.fullChargeMs) } ?: "Dados insuficientes" else autonomy?.let { durationText(it.fullBatteryMs) } ?: "Dados insuficientes",
     averageDescription=if(charging) {
      chargeHistory?.let { "${it.sessionsUsed} sessões válidas de carregamento; extrapolação de recargas parciais" }
@@ -296,13 +297,13 @@ private fun MonitorScreen(r: Reading, s: Settings, telemetry: List<TelemetrySamp
     if(useThreeColumns) {
      Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
       MetricTile(currentLabel,currentValue,currentUnit,Modifier.weight(1f)) { metricDetails=currentLabel to currentDetails }
-      MetricTile(temperatureLabel,temperatureValue,if(s.fahrenheit) "°F" else "°C",Modifier.weight(1f)) { metricDetails=temperatureLabel to temperatureDetails }
+      MetricTile(temperatureLabel,temperatureValue,thermalUi.shortLabel,Modifier.weight(1f),containerColor=thermalUi.containerColor,labelColor=thermalUi.labelColor,valueColor=thermalUi.valueColor,supportingColor=thermalUi.supportingColor) { metricDetails=temperatureLabel to temperatureDetails }
       MetricTile(rateLabel,rateValue,"%/h",Modifier.weight(1f)) { metricDetails=rateLabel to rateDetails }
      }
     } else {
      Column(verticalArrangement=Arrangement.spacedBy(8.dp)) {
       MetricTile(currentLabel,if(r.current==null) "—" else currentText(r.current),r.currentInfo.source.label,Modifier.fillMaxWidth()) { metricDetails=currentLabel to currentDetails }
-      MetricTile(temperatureLabel,temperatureText(r.temperature,s.fahrenheit),"Sensor da bateria",Modifier.fillMaxWidth()) { metricDetails=temperatureLabel to temperatureDetails }
+      MetricTile(temperatureLabel,temperatureText(r.temperature,s.fahrenheit),thermalUi.shortLabel,Modifier.fillMaxWidth(),containerColor=thermalUi.containerColor,labelColor=thermalUi.labelColor,valueColor=thermalUi.valueColor,supportingColor=thermalUi.supportingColor) { metricDetails=temperatureLabel to temperatureDetails }
       MetricTile(rateLabel,if(measuring) rateText(r.rate) else "Indisponível","Variação da bateria por hora",Modifier.fillMaxWidth()) { metricDetails=rateLabel to rateDetails }
      }
     }
@@ -426,6 +427,74 @@ private fun StatusPill(text: String,accent: Color) {
 }
 
 @Composable
+private data class ThermalUi(
+ val shortLabel: String,
+ val details: String,
+ val containerColor: Color,
+ val labelColor: Color,
+ val valueColor: Color,
+ val supportingColor: Color,
+)
+
+@Composable
+private fun rememberThermalUi(temperatureC: Double?, hotThresholdC: Int): ThermalUi {
+ val colors = MaterialTheme.colorScheme
+ if(temperatureC==null || !temperatureC.isFinite()) {
+  return ThermalUi(
+   shortLabel="Sem sensor",
+   details="Sem leitura térmica disponível",
+   containerColor=colors.surface,
+   labelColor=colors.onSurfaceVariant,
+   valueColor=colors.onSurface,
+   supportingColor=colors.onSurfaceVariant,
+  )
+ }
+ val bands = ThermalBands.bounds(hotThresholdC)
+ val status = ThermalBands.classify(temperatureC,hotThresholdC)
+ return when(status) {
+  ThermalLevel.NORMAL -> ThermalUi(
+   shortLabel="Dentro do padrão",
+   details="Dentro da faixa observada como confortável (até ${bands.normalMaxC} °C), com alerta configurado em ${bands.alertMinC} °C",
+   containerColor=colors.secondaryContainer.copy(alpha=.55f),
+   labelColor=colors.onSecondaryContainer,
+   valueColor=colors.onSurface,
+   supportingColor=colors.onSecondaryContainer,
+  )
+  ThermalLevel.WARM -> ThermalUi(
+   shortLabel="Aquecida",
+   details="Faixa aquecida para este aparelho (${bands.normalMaxC+1} a ${bands.warmMaxC} °C), abaixo do alerta configurado em ${bands.alertMinC} °C",
+   containerColor=Color(0xFFFFF4D6),
+   labelColor=Color(0xFF7A5200),
+   valueColor=colors.onSurface,
+   supportingColor=Color(0xFF7A5200),
+  )
+  ThermalLevel.HIGH -> ThermalUi(
+   shortLabel="Elevada",
+   details="Temperatura alta e próxima do limite de alerta (${bands.highMinC} a ${bands.highMaxC} °C, alerta em ${bands.alertMinC} °C)",
+   containerColor=Color(0xFFFFE7D6),
+   labelColor=Color(0xFF8B3F00),
+   valueColor=colors.onSurface,
+   supportingColor=Color(0xFF8B3F00),
+  )
+  ThermalLevel.ALERT -> ThermalUi(
+   shortLabel="Alerta térmico",
+   details="Acima do limite configurado de ${bands.alertMinC} °C. Observe o carregador, a ventilação e o uso do aparelho",
+   containerColor=colors.errorContainer.copy(alpha=.72f),
+   labelColor=colors.onErrorContainer,
+   valueColor=colors.onSurface,
+   supportingColor=colors.onErrorContainer,
+  )
+  ThermalLevel.UNKNOWN -> ThermalUi(
+   shortLabel="Sem classificação",
+   details="Leitura térmica inválida",
+   containerColor=colors.surface,
+   labelColor=colors.onSurfaceVariant,
+   valueColor=colors.onSurface,
+   supportingColor=colors.onSurfaceVariant,
+  )
+ }
+}
+
 private fun SmallInfoChip(label: String,value: String) {
  Surface(shape=RoundedCornerShape(16.dp),color=MaterialTheme.colorScheme.surfaceVariant.copy(alpha=.65f)) {
   Column(Modifier.fillMaxWidth().padding(horizontal=10.dp,vertical=8.dp),verticalArrangement=Arrangement.spacedBy(2.dp)) {
@@ -486,13 +555,23 @@ private fun CompactCurrentCard(
 }
 
 @Composable
-private fun MetricTile(label: String,value: String,unit: String,modifier: Modifier=Modifier,onClick: () -> Unit) {
+private fun MetricTile(
+ label: String,
+ value: String,
+ unit: String,
+ modifier: Modifier=Modifier,
+ containerColor: Color = MaterialTheme.colorScheme.surface,
+ labelColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+ valueColor: Color = MaterialTheme.colorScheme.onSurface,
+ supportingColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+ onClick: () -> Unit
+) {
  Card(onClick=onClick,modifier=modifier.heightIn(min=94.dp).semantics { contentDescription="$label: $value $unit. Toque para detalhes." },
-  shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)) {
+  shape=RoundedCornerShape(18.dp),colors=CardDefaults.cardColors(containerColor=containerColor)) {
   Column(Modifier.fillMaxWidth().padding(horizontal=10.dp,vertical=12.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
-   Text(label,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=1,overflow=TextOverflow.Ellipsis)
-   Text(value,fontSize=19.sp,fontWeight=FontWeight.SemiBold,maxLines=1,overflow=TextOverflow.Ellipsis)
-   Text(unit,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=1,overflow=TextOverflow.Ellipsis)
+   Text(label,style=MaterialTheme.typography.labelSmall,color=labelColor,maxLines=1,overflow=TextOverflow.Ellipsis)
+   Text(value,fontSize=19.sp,fontWeight=FontWeight.SemiBold,color=valueColor,maxLines=1,overflow=TextOverflow.Ellipsis)
+   Text(unit,style=MaterialTheme.typography.labelSmall,color=supportingColor,maxLines=1,overflow=TextOverflow.Ellipsis)
   }
  }
 }

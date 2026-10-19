@@ -1,0 +1,10 @@
+Pulso Bateria alpha.39 — Home térmica e cartão 0–100%
+
+Validações locais executadas:
+- tools/test_home_compact.py
+- tools/test_navigation_contract.py
+- tools/test_storage_sql.py
+- tools/validate_source.py
+- core/src/test/kotlin/br/com/pulsobateria/core/ThermalBandsTest.kt adicionada para a suíte JVM
+
+Pendência: build Android e execução da suíte JVM completa no GitHub Actions.

@@ -24,7 +24,11 @@ class SessionHistoryTextTest {
  @Test fun nearbyMatchingSessionsAreOnlyPossibleContinuations() {
   val first = session(1000,100_000,80,67)
   assertTrue(SessionHistoryText.possibleContinuation(first,session(160_000,200_000,67,65)))
-  assertFalse(SessionHistoryText.possibleContinuation(first,session(280_001,300_000,67,65)))
+  // Entre 100_000 e 280_001 ms há 180_001 ms sem observação: agora é válido (até 5 min).
+  assertTrue(SessionHistoryText.possibleContinuation(first,session(280_001,300_000,67,65)))
+  // Fronteira de cinco minutos exatos: inclusiva; um milissegundo depois: não une.
+  assertTrue(SessionHistoryText.possibleContinuation(first,session(400_000,450_000,67,65)))
+  assertFalse(SessionHistoryText.possibleContinuation(first,session(400_001,450_000,67,65)))
   assertFalse(SessionHistoryText.possibleContinuation(first,session(160_000,200_000,66,65)))
   assertFalse(SessionHistoryText.possibleContinuation(first,session(160_000,200_000,67,68,mode=Mode.CHARGING)))
   assertFalse(SessionHistoryText.possibleContinuation(first.copy(closed=false),session(160_000,200_000,67,65)))

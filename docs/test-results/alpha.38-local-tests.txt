@@ -1,0 +1,22 @@
+Pulso Bateria alpha.38 — correção de teste, workflow 33
+
+Falha anterior no GitHub Actions: :core:test = 186 executados, 185 passaram, 1 falhou (SessionHistoryTextTest.kt:27).
+Causa: assertFalse de gap 180001 ms em uma versão cujo agrupamento visual aceita gap <= 300000 ms.
+
+Ajuste:
+  gap 180001 ms => true
+  gap 300000 ms => true
+  gap 300001 ms => false
+
+Local: kotlinc 1.9.0 + executor/asserções locais compatíveis JUnit: 186/186 PASS.
+Não se trata de JUnit 4 rodando no Gradle.
+Política externa multiapp Kotlin/JVM: 16/16 PASS.
+UI Sessões: 13/13 PASS.
+Home: 16/16 PASS.
+Settings: 21/21 PASS.
+API Labs: 26/26 PASS.
+SQL: 15/15 PASS.
+Contrato navegação e Labs: PASS.
+Source validator: PASS.
+Tentativa Gradle falhou antes dos testes: UnknownHostException services.gradle.org, distribuição 8.11.1 indisponível neste ambiente.
+APK Android não compilado aqui; validar no GitHub Actions.

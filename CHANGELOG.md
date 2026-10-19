@@ -1,3 +1,10 @@
+## 0.1.0-alpha.38 (19/10/2026)
+
+- Corrige a expectativa desatualizada do teste `SessionHistoryTextTest` que interrompeu o workflow 33 (`:core:test`: 186 testes, 1 falha). A lacuna de 180.001 ms é permitida dentro do novo limite visual de cinco minutos.
+- Novas verificações da fronteira: 300.000 ms é permitido e 300.001 ms é recusado. Não altera o agrupamento em produção, persistência, API externa, Labs, sessões, backup nem monitoramento.
+- Atualiza `versionName`, `versionCode`, workflow e documentação para alpha.38.
+- Não afirma que um build Android foi aprovado sem execução no GitHub Actions.
+
 ## 0.1.0-alpha.37 (18/10/2026)
 
 - Aba Sessões compacta cinco controles em uma linha: Comparar, Relatórios, Todas, Carga, Descarga, com rolagem horizontal caso necessário para acessibilidade.

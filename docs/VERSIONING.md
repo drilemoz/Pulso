@@ -1,7 +1,9 @@
 # Versionamento
 
-Versão atual: **0.1.0-alpha.37**, **versionCode 37**.
-Próxima entrega: **0.1.0-alpha.38**, **versionCode 38**.
+Versão atual: **0.1.0-alpha.38**, **versionCode 38**.
+Próxima entrega: **0.1.0-alpha.39**, **versionCode 39**.
+
+Alpha.38: ajuste do teste de continuação visual ao limite de cinco minutos, falha do workflow 33 corrigida no código do teste; sem alteração de produção, Room, backup ou AIDL. Próxima alpha.39 / 39.
 
 Alpha.37: interface Sessões com 5 controles em uma linha, resumo histórico 100%/0–100% (somente sessões finalizadas) e agrupamento visual opcional com lacuna máxima de 5 minutos, sem tocar em Room v8, backup v6, AIDL, monitoramento ou dados salvos. Próxima alpha.38 / 38.
 

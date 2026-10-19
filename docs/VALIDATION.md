@@ -1,3 +1,31 @@
+# Validação — Pulso Bateria 0.1.0-alpha.38 / versionCode 38
+
+## Diagnóstico do workflow 33 (19/10/2026 UTC)
+
+- Arquivo analisado: `Pulso-Android-Pulso-Bateria-33-logs.zip`, especialmente o job build, etapa "Testes, lint e APK Debug".
+- O Gradle executou `:core:test`, que terminou com **186 testes, 1 falha**: `SessionHistoryTextTest.nearbyMatchingSessionsAreOnlyPossibleContinuations`, `SessionHistoryTextTest.kt:27`.
+- Teste da alpha.37 desatualizado: `first.ended=100_000`, `next.started=280_001` resulta em lacuna `180_001 ms`, que é **menor** que o novo limite visual `300_000 ms`. O teste exigia `assertFalse`, contrariando o código em produção.
+- Mantida a regra inclusiva `gap in 0L..300_000L`. Corrigido o teste para aprovar lacunas de 180.001 ms, 300.000 ms e rejeitar 300.001 ms. Outros limites de observação (coleta e cálculo) não foram alterados.
+- A falha do CI parou a execução antes de terminar `:app:testDebugUnitTest`, `:app:lintDebug` e `:app:assembleDebug`; portanto não há APK confirmado nesse workflow. A etapa AIDL de processamento e a compilação do núcleo Kotlin avançaram antes da falha.
+
+## Validação executada nesta entrega
+
+- `kotlinc` 1.9.0 compilou os arquivos de núcleo Kotlin e seus testes, com anotações/asserções JUnit compatíveis locais. **186/186 testes passaram**, incluindo a correção do workflow 33. **Não equivale ao runner Gradle/JUnit 4 oficial**, que continua pendente.
+- `bash tools/run_external_labs_policy_test.sh`: **16/16** invariantes da API multiaplicativos, Kotlin/JVM.
+- `python tools/validate_source.py`: **PASS** (versões, manifesto, Wrapper oficial/CRC e estrutura).
+- `python tools/test_session_grouping_ui.py`: **13/13 PASS**.
+- `python tools/test_home_compact.py`: **16/16 PASS**.
+- `python tools/test_navigation_contract.py`: **PASS**, todas as verificações de navegação.
+- `python tools/test_labs_history.py`: **PASS**, inclusive operações de exclusão dos Labs.
+- `python tools/test_settings_ui.py`: **21/21 PASS**.
+- `python tools/test_external_labs_contract.py`: **26/26 PASS**.
+- `python tools/test_storage_sql.py`: **15/15 PASS**; o harness relata avisos `ResourceWarning` sobre conexões não fechadas, sem falhas.
+- `./gradlew :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --offline --no-daemon`: **não iniciou tarefas**, pois a distribuição Gradle 8.11.1 não estava disponível localmente e a resolução de `services.gradle.org` gerou `UnknownHostException`.
+
+**Pendências:** executar workflow da alpha.38 no GitHub Actions; validar compilação Compose/AIDL, lint, APK assinado e atualização/testes no Android. Room v8, backup JSON v6, API AIDL v1, FGS e cálculos de bateria mantidos intactos.
+
+---
+
 # Validação — Pulso Bateria 0.1.0-alpha.37 / versionCode 37
 
 ## Mudanças e limites

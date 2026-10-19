@@ -1,7 +1,14 @@
 # Pulso Bateria
 
-**0.1.0-alpha.37 • versionCode 37** — Android nativo, Kotlin e Jetpack Compose.
+**0.1.0-alpha.38 • versionCode 38** — Android nativo, Kotlin e Jetpack Compose.
 Android 8.0/API 26 ou superior. Identidade: `br.com.pulsobateria`.
+
+## Novidades da alpha.38 — Correção do workflow 33
+
+- Corrigida a regressão no teste `SessionHistoryTextTest.nearbyMatchingSessionsAreOnlyPossibleContinuations`: o antigo teste rejeitava uma lacuna de 180.001 ms, embora o limite visual atual permita 300.000 ms.
+- O limite permanece **5 minutos inclusive**. O teste agora aprova 180.001 ms e 300.000 ms e rejeita 300.001 ms, sem modificar o comportamento de produção.
+- Somente testes, versão e documentação mudam. UI, API Labs AIDL multiaplicativos, Room v8, backup v6 e cálculos de bateria são preservados.
+- O workflow 33 falhou no `:core:test` (186 testes, 1 falha); outros passos Gradle não chegaram a concluir. A compilação Android da alpha.38 continua pendente até executar o GitHub Actions.
 
 ## Novidades da alpha.37 — Histórico de Sessões mais compacto
 

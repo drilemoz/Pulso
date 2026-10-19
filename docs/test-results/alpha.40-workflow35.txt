@@ -1,0 +1,1 @@
+Workflow 35: :app:compileDebugKotlin falhou por @Composable em ThermalUi e ausência em SmallInfoChip. Ambas correções aplicadas na alpha.40. Build completo pendente.

@@ -1,4 +1,4 @@
-# Pulso Bateria 0.1.0-alpha.39
+# Pulso Bateria 0.1.0-alpha.40
 
 ## Resumo
 
@@ -7,4 +7,4 @@
 - Faixas térmicas ancoradas no limite configurado em Ajustes, para melhor adaptação entre aparelhos.
 - Sem mudanças no banco, backup, Labs ou API AIDL.
 
-APK esperado do GitHub Actions: `Pulso-Bateria-v0.1.0-alpha.39-debug.apk`. ZIP contém código-fonte, não APK.
+APK esperado do GitHub Actions: `Pulso-Bateria-v0.1.0-alpha.40-debug.apk`. ZIP contém código-fonte, não APK.

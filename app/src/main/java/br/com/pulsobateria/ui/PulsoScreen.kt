@@ -426,7 +426,6 @@ private fun StatusPill(text: String,accent: Color) {
  }
 }
 
-@Composable
 private data class ThermalUi(
  val shortLabel: String,
  val details: String,
@@ -495,6 +494,7 @@ private fun rememberThermalUi(temperatureC: Double?, hotThresholdC: Int): Therma
  }
 }
 
+@Composable
 private fun SmallInfoChip(label: String,value: String) {
  Surface(shape=RoundedCornerShape(16.dp),color=MaterialTheme.colorScheme.surfaceVariant.copy(alpha=.65f)) {
   Column(Modifier.fillMaxWidth().padding(horizontal=10.dp,vertical=8.dp),verticalArrangement=Arrangement.spacedBy(2.dp)) {

@@ -1,3 +1,9 @@
+## 0.1.0-alpha.40 (19/10/2026)
+
+- Corrige a anotação @Composable incorreta em ThermalUi e ausente em SmallInfoChip, conforme workflow 35.
+- Mantém o indicador térmico e o título de recarga da alpha.39.
+- Atualiza versão e workflow.
+
 ## 0.1.0-alpha.39 (18/10/2026)
 
 - Corrige o texto longo do cartão da tela inicial, trocando **Média equivalente de 0 a 100%** por **Carga média 0–100%** para evitar quebra visual ruim.

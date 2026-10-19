@@ -1,4 +1,4 @@
-# Validação — Pulso Bateria 0.1.0-alpha.39 / versionCode 39
+# Validação — Pulso Bateria 0.1.0-alpha.40 / versionCode 40
 
 ## Escopo
 
@@ -15,3 +15,5 @@
 ## Pendências
 
 Executar workflow da alpha.39 no GitHub Actions; validar compilação Compose, APK, comportamento visual no Android e integração contínua da suíte JVM completa.
+
+Workflow 35: erro de compilação em PulsoScreen.kt linhas 429, 498–499 corrigido. Compilação Android da alpha.40 pendente.

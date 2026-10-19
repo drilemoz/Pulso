@@ -1,6 +1,6 @@
 # Pulso Bateria
 
-**0.1.0-alpha.39 • versionCode 39** — Android nativo, Kotlin e Jetpack Compose.
+**0.1.0-alpha.40 • versionCode 40** — Android nativo, Kotlin e Jetpack Compose.
 
 ## Novidades da alpha.39 — Tela inicial térmica e cartão de recarga ajustado
 

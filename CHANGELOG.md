@@ -1,3 +1,7 @@
+## 0.1.0-alpha.50 (19/10/2026)
+
+- Labs: avisos conservadores para comparação A/B com cobertura baixa, duração desigual e medições ausentes. Testes Kotlin e contrato estático no CI. Sem mudança em Room, backup ou cálculo de corrente.
+
 ## 0.1.0-alpha.49 (19/10/2026)
 - Exportação de comparação A/B em CSV via área de transferência, com unidades no cabeçalho e campos ausentes vazios; sem permissão de armazenamento.
 - Room v8, backup JSON v6 e API AIDL inalterados.

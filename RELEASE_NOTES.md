@@ -1,4 +1,8 @@
-# Pulso Bateria 0.1.0-alpha.49
+# Pulso Bateria 0.1.0-alpha.50
+
+## Novidade da alpha.50
+
+- Labs compara testes com avisos explícitos de limitações observacionais; sem alterar banco ou estimativas.
 
 ## Novidade da alpha.49
 
@@ -31,6 +35,6 @@ Auditoria de consistência de release e correção do CHANGELOG histórico. Sem 
 - Faixas térmicas ancoradas no limite configurado em Ajustes, para melhor adaptação entre aparelhos.
 - Sem mudanças no banco, backup, Labs ou API AIDL.
 
-APK esperado do GitHub Actions: `Pulso-Bateria-v0.1.0-alpha.49-debug.apk`. ZIP contém código-fonte, não APK.
+APK esperado do GitHub Actions: `Pulso-Bateria-v0.1.0-alpha.50-debug.apk`. ZIP contém código-fonte, não APK.
 
 Diagnóstico: idade da consulta de bateria visível em Configurações > Fonte de medição > Dados técnicos.

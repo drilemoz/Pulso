@@ -2,7 +2,7 @@
 
 - Android Kotlin/Compose, offline, sem anúncios/rastreamento/INTERNET. Não inventar medições ou capacidades do aparelho.
 - Antes de editar, ler README, docs/MEASUREMENTS.md e docs/VERSIONING.md.
-- Versão atual 0.1.0-alpha.49 / versionCode 49. Próxima 0.1.0-alpha.50 / 50. Incrementar sequencialmente cada entrega e sincronizar todos os documentos, Gradle, workflow e nome do ZIP.
+- Versão atual 0.1.0-alpha.50 / versionCode 50. Próxima 0.1.0-alpha.51 / 51. Incrementar sequencialmente cada entrega e sincronizar todos os documentos, Gradle, workflow e nome do ZIP.
 - Preservar applicationId. Keystore privada e Secrets nunca entram no ZIP de código ou repositório. Para Debug atualizável, requer Secrets estáveis; sem Secrets a chave temporária deve receber aviso.
 - Manter cálculos no módulo core, testáveis sem Android; validar nulos, sentinelas, sinal, relógio e lacunas.
 - Não iniciar foreground service fora de ação permitida; manter tipo specialUse e sua justificativa, sem simular dataSync/health. Não adicionar wake locks, permissões privilegiadas ou mecanismos de evasão.
@@ -59,3 +59,5 @@
 - Alpha.48: Barras de duração proporcional na comparação solar, com segmentos carregando, sem carga e sem leitura; nenhum gráfico de corrente sem amostras temporais. Próxima alpha.49 / 49.
 
 - Alpha.49: Exportação de comparação A/B em CSV via área de transferência, com unidades no cabeçalho e campos ausentes vazios; sem permissão de armazenamento. Próxima alpha.50 / 50.
+
+- Alpha.50: Labs sinaliza limitações da comparação solar com critérios conservadores (cobertura <80%, dados ausentes, duração >25% diferente); não inventar qualidade percentual nem modificar Room/backup. Próxima alpha.51 / 51.

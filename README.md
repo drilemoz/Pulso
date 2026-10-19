@@ -1,6 +1,10 @@
 # Pulso Bateria
 
-**0.1.0-alpha.49 • versionCode 49** — Android nativo, Kotlin e Jetpack Compose.
+**0.1.0-alpha.50 • versionCode 49** — Android nativo, Kotlin e Jetpack Compose.
+
+## Novidades da alpha.50
+
+- Comparação solar sinaliza cobertura inferior a 80%, duração diferente, dados de bateria ou corrente indisponíveis. Critérios conservadores, sem pontuação de precisão artificial.
 
 ## Novidades da alpha.49
 

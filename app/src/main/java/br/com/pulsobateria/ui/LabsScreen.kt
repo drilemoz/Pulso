@@ -25,6 +25,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import br.com.pulsobateria.core.LabMath
 import br.com.pulsobateria.core.LabReportMath
+import br.com.pulsobateria.core.LabComparisonQuality
 import br.com.pulsobateria.data.LabTest
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
@@ -332,6 +333,14 @@ private fun SolarComparisonCard(a: LabTest,b: LabTest) {
      Text("Corrente média: ${mean(b)}")
      Text("Cobertura: ${coverage(b)}")
     }
+   }
+   fun summary(t: LabTest): LabComparisonQuality.TestSummary = LabComparisonQuality.TestSummary(
+    ((t.endedAt ?: t.startedAt)-t.startedAt).coerceAtLeast(0L),t.chargingMs,t.notChargingMs,
+    t.initialPercent,t.finalPercent,LabMath.meanMa(t.weightedMaMs,t.validCurrentMs))
+   val warnings=LabComparisonQuality.warnings(summary(a),summary(b))
+   if(warnings.isNotEmpty()) {
+    Text("Limitações da comparação",style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.SemiBold)
+    warnings.forEach { Text("• $it",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant) }
    }
    Text("Distribuição do tempo observado",style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.SemiBold)
    SolarDurationBar("A",a)

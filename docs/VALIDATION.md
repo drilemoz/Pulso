@@ -1,19 +1,11 @@
-# Validação — Pulso Bateria 0.1.0-alpha.40 / versionCode 40
+# Validação — Pulso Bateria 0.1.0-alpha.45 / versionCode 45
 
-## Escopo
-
-- Ajuste do cartão de recarga na tela inicial.
-- Indicador térmico visual com faixas relativas ao limite configurado.
-- Sem alterações em Room v8, backup JSON v6, API AIDL v1 ou lógica dos Labs.
+## Alterações
+Classificação de origem e atualidade da consulta no diagnóstico, com lógica pura no core e testes de fronteira. Room v8, backup v6 e AIDL preservados.
 
 ## Verificações locais
-
-- Scripts estáticos de navegação, armazenamento e home executados com sucesso.
-- Análise sintática do `PulsoScreen.kt` e do utilitário `ThermalBands.kt` sem erros detectados nos contratos locais.
-- Testes manuais de regra térmica adicionados em `ThermalBandsTest.kt` para a suíte JVM do núcleo.
+Executados: validate_source.py, test_release_consistency.py, todos os tools/test_*.py (incluindo 15 testes SQLite), e verificação CRC do ZIP com 143 arquivos. Os testes Kotlin/JVM novos foram escritos, mas não executados localmente por falta de toolchain/Gradle.
 
 ## Pendências
-
-Executar workflow da alpha.39 no GitHub Actions; validar compilação Compose, APK, comportamento visual no Android e integração contínua da suíte JVM completa.
-
-Workflow 35: erro de compilação em PulsoScreen.kt linhas 429, 498–499 corrigido. Compilação Android da alpha.40 pendente.
+- Build Android completo, lint, testes instrumentados e instalação física ainda não comprovados.
+- Geração e versionamento dos schemas Room oficiais pelo KSP ainda precisam de conferência.

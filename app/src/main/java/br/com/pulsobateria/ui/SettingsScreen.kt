@@ -210,6 +210,10 @@ internal fun SettingsPage(
      item { SettingsPanel("Fonte de medição") {
       Text(r.currentInfo.source.label,fontWeight=FontWeight.SemiBold,style=MaterialTheme.typography.titleMedium)
       Text(r.currentInfo.note,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+      val diagnostic=br.com.pulsobateria.core.CurrentReadingDiagnostics.classify(r.currentInfo,r.updated,System.currentTimeMillis())
+      SettingsValueRow("Classificação",diagnostic.kind.label)
+      SettingsValueRow("Atualidade",if(diagnostic.stale) "Consulta antiga ou inválida" else "Consulta recente")
+      Text(diagnostic.description,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
      } }
      item { SettingsPanel("Dados técnicos") {
       var expanded by rememberSaveable { mutableStateOf(false) }
@@ -218,6 +222,8 @@ internal fun SettingsPage(
       }
       if(expanded) {
        if(r.updated>0) SettingsValueRow("Leitura",SimpleDateFormat("dd/MM/yyyy HH:mm:ss",Locale.forLanguageTag("pt-BR")).format(Date(r.updated)))
+       SettingsValueRow("Atualização",br.com.pulsobateria.core.ReadingFreshness.describe(r.updated,System.currentTimeMillis()))
+       Text("A idade indica quando o Android foi consultado, não garante que o sensor tenha atualizado a corrente.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
        SettingsValueRow("CURRENT_NOW",r.currentInfo.rawNow?.let { "$it µA (Android)" } ?: "Indisponível")
        SettingsValueRow("CURRENT_AVERAGE",r.currentInfo.rawAverage?.let { "$it µA (Android)" } ?: "Indisponível")
        SettingsValueRow("CHARGE_COUNTER",r.currentInfo.rawCounter?.let { "$it µAh" } ?: "Indisponível")

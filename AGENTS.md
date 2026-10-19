@@ -2,7 +2,7 @@
 
 - Android Kotlin/Compose, offline, sem anúncios/rastreamento/INTERNET. Não inventar medições ou capacidades do aparelho.
 - Antes de editar, ler README, docs/MEASUREMENTS.md e docs/VERSIONING.md.
-- Versão atual 0.1.0-alpha.38 / versionCode 38. Próxima 0.1.0-alpha.39 / 39. Incrementar sequencialmente cada entrega e sincronizar todos os documentos, Gradle, workflow e nome do ZIP.
+- Versão atual 0.1.0-alpha.45 / versionCode 45. Próxima 0.1.0-alpha.46 / 46. Incrementar sequencialmente cada entrega e sincronizar todos os documentos, Gradle, workflow e nome do ZIP.
 - Preservar applicationId. Keystore privada e Secrets nunca entram no ZIP de código ou repositório. Para Debug atualizável, requer Secrets estáveis; sem Secrets a chave temporária deve receber aviso.
 - Manter cálculos no módulo core, testáveis sem Android; validar nulos, sentinelas, sinal, relógio e lacunas.
 - Não iniciar foreground service fora de ação permitida; manter tipo specialUse e sua justificativa, sem simular dataSync/health. Não adicionar wake locks, permissões privilegiadas ou mecanismos de evasão.
@@ -46,3 +46,8 @@
 - Alpha.37: UI Sessões apresenta cinco filtros/ações em uma linha, “Unir ≤5 min” ao lado da ajuda, histórico equivalente completo de carga e descarga só de sessões finalizadas elegíveis. Apenas `SessionHistoryText` altera limite visual para 300_000 ms; regras do monitor e Room permanecem intactas. Próxima alpha.38 / 38.
 
 - Alpha.38: corrigido teste legado de SessionHistoryText sobre intervalo visual de cinco minutos (CI workflow 33 falhou em :core:test). Mantidos 300_000 ms inclusivos em produção; teste de fronteira 300_001 ms. Sem mudanças de banco, cálculos, tela ou AIDL. Próxima alpha.39 / 39.
+
+- Alpha.42: teste de regressão Compose da Home e correção histórica do CHANGELOG. Room v8 e backup v6 preservados. Próxima alpha.43 / 43.
+- Alpha.41: reforço de validação CI, verificação de versão do AGENTS e documentação sincronizada. Room v8, backup v6, cálculos e AIDL intactos. Próxima alpha.43 / 43.
+
+- Alpha.45: classificação diagnóstica da fonte e aviso de consulta antiga (>60 s). Não interpretar consulta recente como leitura nova do sensor. Próxima alpha.46 / 46.

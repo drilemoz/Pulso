@@ -1,6 +1,11 @@
 # Pulso Bateria
 
-**0.1.0-alpha.40 • versionCode 40** — Android nativo, Kotlin e Jetpack Compose.
+**0.1.0-alpha.45 • versionCode 45** — Android nativo, Kotlin e Jetpack Compose.
+
+## Novidades da alpha.45
+
+- Diagnóstico de corrente com tipo da fonte e aviso de consulta antiga (>60 segundos).
+- A classificação não certifica atualização interna do sensor nem altera as medições.
 
 ## Novidades da alpha.39 — Tela inicial térmica e cartão de recarga ajustado
 

@@ -17,6 +17,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.*
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -50,8 +54,9 @@ private fun dateCompact(time: Long): String = SimpleDateFormat("dd/MM HH:mm",Loc
 
 @Composable
 fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Boolean) -> Unit) {
- val active by vm.labCurrent.collectAsState()
- val history by vm.labHistory.collectAsState()
+ val lifecycleOwner = LocalLifecycleOwner.current
+ val active by vm.labCurrent.collectAsStateWithLifecycle()
+ val history by vm.labHistory.collectAsStateWithLifecycle()
  var page by rememberSaveable { mutableStateOf("home") }
  var solarCompareFirst by rememberSaveable { mutableStateOf<Long?>(null) }
  var solarCompareSecond by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -72,15 +77,18 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
  LaunchedEffect(active?.id) {
   if(active!=null) hadActive=true
   else if(hadActive) { page="home"; hadActive=false }
-  while(active!=null) { now=System.currentTimeMillis(); delay(1000L) }
+  if(active!=null) lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+   while(true) { now=System.currentTimeMillis(); delay(1000L) }
+  }
  }
  BackHandler(enabled=active==null && page!="home") { page="home" }
  val selectedWatts=when(panel) { "other" -> customWatts.toIntOrNull(); else -> panel.toIntOrNull() }
  val selectedMinutes=when(timer) { "manual" -> null; "other" -> customMinutes.toIntOrNull(); else -> timer.toIntOrNull() }
  val validWatts=selectedWatts!=null && selectedWatts in 1..200
  val validDuration=timer=="manual" || selectedMinutes!=null && selectedMinutes in 1..1440
- val completed=history.filter { it.status != "RUNNING" }
- val solarCompleted=completed.filter { it.kind == "SOLAR" }
+ // Evita refiltrar todo o histórico a cada tick de atualização do cronômetro.
+ val completed=remember(history) { history.filter { it.status != "RUNNING" } }
+ val solarCompleted=remember(completed) { completed.filter { it.kind == "SOLAR" } }
  val isConfigPage=active==null && (page=="solar" || page=="discharge")
  Box(modifier.fillMaxSize()) {
  LazyColumn(Modifier.fillMaxSize(),

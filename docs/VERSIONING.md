@@ -1,6 +1,6 @@
 # Versionamento
 
-Versão atual: **0.1.0-alpha.50**, **versionCode 50**.
+Versão atual: **0.1.0-alpha.55**, **versionCode 55**.
 
 Cada alteração no projeto deve aumentar sequencialmente o `versionCode` e o `versionName`, além de sincronizar README, CHANGELOG, RELEASE_NOTES e documentação de validação.
 
@@ -21,3 +21,11 @@ Alpha.48: Barras de duração proporcional na comparação solar, com segmentos 
 Alpha.49: Exportação de comparação A/B em CSV via área de transferência, com unidades no cabeçalho e campos ausentes vazios; sem permissão de armazenamento. Próxima alpha.50 / 50.
 
 - Alpha.50: Labs sinaliza limitações da comparação solar com critérios conservadores (cobertura <80%, dados ausentes, duração >25% diferente); não inventar qualidade percentual nem modificar Room/backup. Próxima alpha.51 / 51.
+
+Alpha.51: Labs: listas de testes concluídos e solares memorizadas por histórico, evitando refiltragem a cada atualização do cronômetro; resultados e persistência intactos.
+
+Alpha.52: Histórico: agrupamento e títulos de datas passam a considerar explicitamente o locale no cache Compose; preserva sessões, filtros e lacunas observadas.
+
+Alpha.53: coleta de estado Labs atrelada ao ciclo de vida; relógio apenas visual pausa fora da tela, retomando pelo horário real. Próxima alpha.54 / 54.
+
+Alpha.55: Novidades com testes de falha obrigatória para versões divergentes e itens inválidos. Próxima alpha.56.

@@ -1,6 +1,14 @@
 # Pulso Bateria
 
-**0.1.0-alpha.50 • versionCode 49** — Android nativo, Kotlin e Jetpack Compose.
+**0.1.0-alpha.55 • versionCode 55** — Android nativo, Kotlin e Jetpack Compose.
+
+## Novidades da alpha.55
+
+- Testes negativos e validação mais rigorosa da tela de Novidades no build.
+
+## Novidades da alpha.54
+
+- Tela Novidades por build com abertura automática e acesso manual. Build bloqueado se conteúdo não for atualizado.
 
 ## Novidades da alpha.50
 
@@ -35,3 +43,5 @@
 ## Projeto
 
 Aplicativo offline para monitoramento de bateria com dados oficiais do Android, histórico local, notificações e ferramentas de laboratório.
+
+Alpha.53: Labs observa dados apenas com a interface ativa e suspende ticks visuais fora da tela. O serviço de monitoramento não foi alterado.

@@ -12,8 +12,8 @@ android {
   minSdk = 26
   targetSdk = 35
   testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-  versionCode = 50
-  versionName = "0.1.0-alpha.50"
+  versionCode = 55
+  versionName = "0.1.0-alpha.55"
  }
  buildFeatures { compose = true; buildConfig = true; aidl = true }
  compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
@@ -60,3 +60,10 @@ dependencies {
  androidTestImplementation("androidx.test.ext:junit:1.2.1")
  androidTestImplementation("androidx.test:runner:1.6.2")
 }
+
+// A verificação é parte do grafo do Gradle, não apenas do CI.
+val checkReleaseNews by tasks.registering(Exec::class) {
+ workingDir = rootProject.projectDir
+ commandLine("python3", "tools/check_release_news.py")
+}
+tasks.matching { it.name == "preBuild" }.configureEach { dependsOn(checkReleaseNews) }

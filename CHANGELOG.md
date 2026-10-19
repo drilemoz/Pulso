@@ -1,3 +1,31 @@
+## 0.1.0-alpha.55 (19/10/2026)
+
+- Reforçada a verificação obrigatória das Novidades: rejeita itens duplicados, vazios ou malformados.
+- Adicionados testes negativos para versão divergente, lista inválida e ausência da entrada de release no CHANGELOG.
+- Preservados Room v8, backup JSON v6, AIDL v1 e medições.
+
+## 0.1.0-alpha.54 (19/10/2026)
+
+- Nova tela Novidades: exibe somente as alterações desta versão e abre uma vez por versão instalada, com acesso permanente pelo ícone na barra superior.
+- Validação obrigatória no preBuild e CI impede compilação quando a versão das Novidades não corresponde ao Gradle, quando a lista está vazia ou quando falta a entrada no CHANGELOG.
+- Room v8, backup JSON v6 e AIDL v1 preservados.
+
+## 0.1.0-alpha.53 (19/10/2026)
+
+- Labs: observação de fluxos passa a respeitar STARTED/STOPPED via collectAsStateWithLifecycle, reduzindo processamento fora da tela.
+- Cronômetro visual de teste ativo pausa atualizações em segundo plano e sincroniza ao voltar, sem interferir no registro do teste pelo monitor.
+- Room v8, backup JSON v6 e AIDL v1 preservados.
+
+## 0.1.0-alpha.52 (19/10/2026)
+
+- Histórico: agrupamento e títulos de datas passam a considerar explicitamente o locale no cache Compose; preserva sessões, filtros e lacunas observadas.
+- Room v8, backup JSON v6 e AIDL v1 inalterados.
+
+## 0.1.0-alpha.51 (19/10/2026)
+
+- Labs: listas de testes concluídos e solares memorizadas por histórico, evitando refiltragem a cada atualização do cronômetro; resultados e persistência intactos.
+- Room v8, backup JSON v6 e AIDL v1 inalterados.
+
 ## 0.1.0-alpha.50 (19/10/2026)
 
 - Labs: avisos conservadores para comparação A/B com cobertura baixa, duração desigual e medições ausentes. Testes Kotlin e contrato estático no CI. Sem mudança em Room, backup ou cálculo de corrente.

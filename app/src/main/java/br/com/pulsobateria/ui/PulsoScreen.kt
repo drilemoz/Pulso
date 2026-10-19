@@ -39,6 +39,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalView
 import android.app.Activity
+import androidx.compose.ui.platform.LocalContext
+import br.com.pulsobateria.BuildConfig
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -55,6 +57,9 @@ import kotlin.math.abs
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PulsoScreen(onMonitor: (Boolean) -> Unit, openLabs: Boolean = false, vm: PulsoViewModel = viewModel()) {
+ val context = LocalContext.current
+ var showReleaseNews by rememberSaveable { mutableStateOf(!newsAlreadySeen(context)) }
+ val closeReleaseNews = { markNewsSeen(context); showReleaseNews = false }
  val settings by vm.settings.collectAsStateWithLifecycle()
  val reading by vm.reading.collectAsStateWithLifecycle()
  val sessions by vm.sessions.collectAsStateWithLifecycle()
@@ -112,7 +117,7 @@ fun PulsoScreen(onMonitor: (Boolean) -> Unit, openLabs: Boolean = false, vm: Pul
    TopAppBar(navigationIcon={ if(detailPage.isNotEmpty()) IconButton(onClick={detailPage=""}) { Icon(Icons.Default.ArrowBack,"Voltar") } },title={ Column {
     Text(when(detailPage) { "analysis" -> "Análise de medições"; "compare" -> "Comparar recargas"; "reports" -> "Relatórios"; else -> when(tab) { 0 -> "Pulso Bateria"; 1 -> "Sessões"; 2 -> "Labs"; else -> "Configurações" } },fontWeight=FontWeight.Bold)
     Text(if(tab==0) "ENERGIA EM TEMPO REAL" else "PULSO • ALPHA",style=MaterialTheme.typography.labelSmall,color=colors.primary,letterSpacing=2.sp)
-   } }, actions={ if(tab!=3 && detailPage.isEmpty()) IconButton(onClick={tab=3;detailPage=""}) { Icon(Icons.Default.Settings,"Configurações") } },
+   } }, actions={ IconButton(onClick={showReleaseNews=true}) { Icon(Icons.Default.Info,"Novidades desta versão") }; if(tab!=3 && detailPage.isEmpty()) IconButton(onClick={tab=3;detailPage=""}) { Icon(Icons.Default.Settings,"Configurações") } },
     colors=TopAppBarDefaults.topAppBarColors(containerColor=colors.background))
   },bottomBar={
    NavigationBar(containerColor=colors.surface) {
@@ -150,6 +155,7 @@ fun PulsoScreen(onMonitor: (Boolean) -> Unit, openLabs: Boolean = false, vm: Pul
      modifier=Modifier.padding(padding))
    }
   }
+  if(showReleaseNews) ReleaseNewsDialog(onClose=closeReleaseNews)
   if(limitations) AlertDialog(onDismissRequest={limitations=false},confirmButton={TextButton(onClick={limitations=false}){Text("Entendi")}},title={Text("Sobre as medições")},text={
    Text("Os dados vêm do Android e dependem do sensor e do fabricante. Corrente positiva indica entrada líquida na bateria; negativa indica saída. O app usa µA e sinal Android. Ajustes da corrente instantânea exigem três janelas estáveis comparadas ao contador; isso não substitui calibração com instrumento. A média Android usa a janela desconhecida do hardware. Estar conectado não garante carga.\n\nA taxa local exige pelo menos 5 minutos e 2% de variação. A duração média com 100% usa só sessões de descarga; a duração equivalente de carga 0 a 100% usa apenas sessões carregando, inclusive parciais, com dados mínimos. Ambas combinam tendência atual e histórico quando disponíveis. Carregadores, fontes USB e energia solar podem apresentar taxas diferentes; perto de 100% a carga pode desacelerar. São estimativas, não garantias. A previsão do sistema só é aceita durante a carga quando compatível com a tendência medida.\n\nSem monitoramento contínuo, só registramos com o app visível. Pausas de até 90 segundos podem retomar a mesma sessão se estado e porcentagem permanecerem iguais; o tempo parado não entra na duração. Lacunas de coleta acima de 3 minutos criam outra sessão. O Android pode suspender o serviço. Não há coleta durante desligamento nem recuperação de intervalos perdidos. Temperatura é da bateria, não da CPU. Na tela inicial, as cores da temperatura seguem faixas relativas ao limite térmico configurado em Ajustes. Corrente não é potência nem capacidade em mAh.")
   })
@@ -665,7 +671,8 @@ private fun History(sessions: List<Session>, settings: Settings, reading: Readin
     SessionHistoryText.possibleContinuation(before.toBoundary(), after.toBoundary())
    }.associate { (before, after) -> after.id to (after.started-before.ended) }
  }
- val groups = remember(filteredGroups) {
+ // O agrupamento por dia depende apenas das sessões filtradas, não do relógio da tela.
+ val groups = remember(filteredGroups,locale) {
   val day = SimpleDateFormat("yyyy-MM-dd",locale)
   filteredGroups.groupBy { day.format(Date(it.first().started)) }
  }
@@ -741,7 +748,7 @@ private fun History(sessions: List<Session>, settings: Settings, reading: Readin
   }
   groups.forEach { (dayKey, dailyGroups) ->
    item(key="day-$dayKey") {
-    val dayTitle = remember(dayKey) { SimpleDateFormat("dd 'de' MMMM 'de' yyyy",locale).format(Date(dailyGroups.first().first().started)) }
+    val dayTitle = remember(dayKey,locale) { SimpleDateFormat("dd 'de' MMMM 'de' yyyy",locale).format(Date(dailyGroups.first().first().started)) }
     Text(dayTitle,style=MaterialTheme.typography.labelMedium,fontWeight=FontWeight.SemiBold,color=MaterialTheme.colorScheme.onSurfaceVariant,modifier=Modifier.padding(top=8.dp,bottom=2.dp))
    }
    items(dailyGroups,key={ "session-group-${it.last().id}" }) { members ->

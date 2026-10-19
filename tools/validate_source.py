@@ -26,15 +26,15 @@ assert (root/'app/src/main/java/br/com/pulsobateria/usage/UsageInsightsReader.kt
 
 gradle=(root/'app/build.gradle.kts').read_text()
 version=re.search(r'versionName = "([^"]+)"',gradle).group(1)
-assert version == '0.1.0-alpha.50'
+assert version == '0.1.0-alpha.55'
 assert (root/'tools/test_compose_regression.py').is_file()
 assert (root/'tools/test_release_consistency.py').is_file()
 assert 'python3 tools/test_compose_regression.py' in (root/'.github/workflows/android.yml').read_text()
-assert re.search(r'versionCode = 50\b',gradle)
-assert 'versionCode 49' in (root/'README.md').read_text()
-assert 'Versão atual 0.1.0-alpha.50 / versionCode 50.' in (root/'AGENTS.md').read_text()
-assert 'Próxima 0.1.0-alpha.51 / 51.' in (root/'AGENTS.md').read_text()
-assert 'tag="apk-alpha.50-' in (root/'.github/workflows/android.yml').read_text()
+assert re.search(r'versionCode = 55\b',gradle)
+assert 'versionCode 55' in (root/'README.md').read_text()
+assert 'Versão atual 0.1.0-alpha.55 / versionCode 55.' in (root/'AGENTS.md').read_text()
+assert 'Próxima 0.1.0-alpha.56 / 56.' in (root/'AGENTS.md').read_text()
+assert 'tag="apk-alpha.55-' in (root/'.github/workflows/android.yml').read_text()
 for file in ['README.md','CHANGELOG.md','RELEASE_NOTES.md','docs/VERSIONING.md','.github/workflows/android.yml']:
  assert version in (root/file).read_text(), f'Version mismatch: {file}'
 jar=root/'gradle/wrapper/gradle-wrapper.jar'
@@ -70,3 +70,7 @@ assert (root/'core/src/main/kotlin/br/com/pulsobateria/core/TelemetryAnalysis.kt
 assert 'const val VERSION = 6' in (root/'app/src/main/java/br/com/pulsobateria/data/BackupManager.kt').read_text()
 assert all(not list(root.rglob(ext)) for ext in ('*.p12','*.jks','*.keystore'))
 print(f'PASS: {len(required)} required files, {len(xmls)} XMLs, permissions, version references and official Wrapper SHA-256/CRC.')
+
+# Novidades é obrigatória para qualquer versão compilável.
+import subprocess
+subprocess.run(["python3", str(root/"tools/check_release_news.py")], check=True)

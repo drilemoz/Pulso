@@ -41,6 +41,14 @@ class ChargeForecastTest {
   val earlier=ChargeForecast.prediction(50,null,now,now,h)!!
   assertEquals((30*3_600_000.0/15.0 + 20*3_600_000.0/5.0).toLong(),earlier.remainingMs)
  }
+ @Test fun sourceCountReflectsOnlySessionsUsedInRecentSourceRate() {
+  val recent=sample(end=now-60_000,gain=20,source="USB")
+  val old=sample(end=now-15*24*3_600_000L,gain=35,source="USB")
+  val other=sample(end=now-5*24*3_600_000L,gain=15,source="Tomada")
+  val h=ChargeForecast.history(listOf(recent,old,other),now,"USB")!!
+  assertEquals(20.0,h.matchingSourcePercentPerHour!!,0.001)
+  assertEquals(1,h.matchingSourceSessionsUsed) // Não contar a sessão antiga descartada do recorte.
+ }
  @Test fun invalidStaleOrZeroPercentGuarded() {
   val h=ChargeForecast.history(listOf(sample()),now,"USB")!!
   assertNull(ChargeForecast.prediction(100,25.0,now,now,h))

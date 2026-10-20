@@ -19,22 +19,22 @@ for path in xmls:
 manifest=ET.parse(root/'app/src/main/AndroidManifest.xml').getroot()
 ns='{http://schemas.android.com/apk/res/android}'
 permissions={x.attrib[ns+'name'] for x in manifest.findall('uses-permission')}
-assert permissions == {'android.permission.POST_NOTIFICATIONS','android.permission.FOREGROUND_SERVICE','android.permission.FOREGROUND_SERVICE_SPECIAL_USE','android.permission.RECEIVE_BOOT_COMPLETED','android.permission.PACKAGE_USAGE_STATS'}
+assert permissions == {'android.permission.POST_NOTIFICATIONS','android.permission.INTERNET','android.permission.CAMERA','android.permission.FOREGROUND_SERVICE','android.permission.FOREGROUND_SERVICE_SPECIAL_USE','android.permission.RECEIVE_BOOT_COMPLETED','android.permission.PACKAGE_USAGE_STATS'}
 assert manifest.find("application/receiver[@"+ns+"name='.monitor.MonitorBootReceiver']") is not None
 assert (root/'app/src/main/java/br/com/pulsobateria/ui/AppUsageScreen.kt').is_file()
 assert (root/'app/src/main/java/br/com/pulsobateria/usage/UsageInsightsReader.kt').is_file()
 
 gradle=(root/'app/build.gradle.kts').read_text()
 version=re.search(r'versionName = "([^"]+)"',gradle).group(1)
-assert version == '0.1.0-alpha.61'
+assert version == '0.1.0-alpha.63'
 assert (root/'tools/test_compose_regression.py').is_file()
 assert (root/'tools/test_release_consistency.py').is_file()
 assert 'python3 tools/test_compose_regression.py' in (root/'.github/workflows/android.yml').read_text()
-assert re.search(r'versionCode = 61\b',gradle)
-assert 'versionCode 61' in (root/'README.md').read_text()
-assert 'Versão atual 0.1.0-alpha.61 / versionCode 61.' in (root/'AGENTS.md').read_text()
-assert 'Próxima 0.1.0-alpha.62 / 62.' in (root/'AGENTS.md').read_text()
-assert 'tag="apk-alpha.61-' in (root/'.github/workflows/android.yml').read_text()
+assert re.search(r'versionCode = 63\b',gradle)
+assert 'versionCode 63' in (root/'README.md').read_text()
+assert 'Versão atual 0.1.0-alpha.63 / versionCode 63.' in (root/'AGENTS.md').read_text()
+assert 'Próxima 0.1.0-alpha.64 / 64.' in (root/'AGENTS.md').read_text()
+assert 'tag="apk-alpha.63-' in (root/'.github/workflows/android.yml').read_text()
 for file in ['README.md','CHANGELOG.md','RELEASE_NOTES.md','docs/VERSIONING.md','.github/workflows/android.yml']:
  assert version in (root/file).read_text(), f'Version mismatch: {file}'
 jar=root/'gradle/wrapper/gradle-wrapper.jar'

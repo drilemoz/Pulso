@@ -9,7 +9,7 @@ checks={
     'grouping before filter': ui.index('SessionHistoryText.groupConsecutive')<ui.index('val filteredGroups'),
     'opt-out toggle relocated to header': 'Switch(checked=groupNearby,onCheckedChange={groupNearby=it}' in ui and 'Unir ≤5 min' in ui,
     'original sessions accessible': 'members.forEach { session ->' in ui and 'SessionHistoryCard(session,settings,vm,possibleResumptions[session.id]' in ui,
-    'sum only observed session duration': 'members.sumOf { it.durationMs.coerceAtLeast(0L) }' in ui,
+    'sum only observed session duration': 'SessionArithmetic.group(members.map { it.toObservedPart() })' in ui and 'val duration=totals?.observedDurationMs ?: 0L' in ui,
     'gap shown separately': 'sem leitura (não contado)' in ui,
     'current requires fresh Android reading': 'screenNow-reading.updated !in 0L..180_000L' in ui and '!it.reason.startsWith("Pausada")' in ui,
     'current indicator available for originals and groups': 'CurrentSessionBadge(accent)' in ui and 'isCurrent=session.id==currentSessionId' in ui,

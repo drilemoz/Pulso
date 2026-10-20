@@ -70,11 +70,16 @@ fun PulsoScreen(onMonitor: (Boolean) -> Unit, openLabs: Boolean = false, vm: Pul
  val settings by vm.settings.collectAsStateWithLifecycle()
  val reading by vm.reading.collectAsStateWithLifecycle()
  val sessions by vm.sessions.collectAsStateWithLifecycle()
- val dischargeHistory = remember(sessions,reading.updated) {
-  DischargeForecast.history(sessions.map { HistoricalDischarge(it.started,it.ended,it.durationMs,it.initial,it.final,it.samples,it.mode) },System.currentTimeMillis())
+ // A Home e a aba Sessões usam exatamente o mesmo universo histórico: SOMENTE
+ // registros finalizados. Incluir a sessão aberta duplicaria a tendência atual
+ // dentro da previsão (70% taxa ao vivo + 30% histórico) e criaria médias
+ // diferentes entre as telas durante o monitoramento.
+ val completedSessions = remember(sessions) { sessions.filter { it.closed } }
+ val dischargeHistory = remember(completedSessions,reading.updated) {
+  DischargeForecast.history(completedSessions.map { HistoricalDischarge(it.started,it.ended,it.durationMs,it.initial,it.final,it.samples,it.mode) },System.currentTimeMillis())
  }
- val chargeHistory = remember(sessions,reading.updated,reading.source) {
-  ChargeForecast.history(sessions.map { HistoricalCharge(it.started,it.ended,it.durationMs,it.initial,it.final,it.samples,it.mode,it.chargeSource) },
+ val chargeHistory = remember(completedSessions,reading.updated,reading.source) {
+  ChargeForecast.history(completedSessions.map { HistoricalCharge(it.started,it.ended,it.durationMs,it.initial,it.final,it.samples,it.mode,it.chargeSource) },
    System.currentTimeMillis(),reading.source)
  }
  val telemetry by vm.telemetry.collectAsStateWithLifecycle()
@@ -341,7 +346,7 @@ private fun MonitorScreen(r: Reading, s: Settings, telemetry: List<TelemetrySamp
     averageTitle=if(charging) "Carga média 0–100%" else "Média com 100%",
     averageValue=if(charging) chargeHistory?.let { durationText(it.fullChargeMs) } ?: "Dados insuficientes" else autonomy?.let { durationText(it.fullBatteryMs) } ?: "Dados insuficientes",
     averageDescription=if(charging) {
-     chargeHistory?.let { "${it.sessionsUsed} sessões válidas de carregamento; extrapolação de recargas parciais" }
+     chargeHistory?.let { "${it.sessionsUsed} sessões finalizadas válidas; extrapolação de recargas parciais" }
       ?: "Exige 30 min observados e ganho de 4% em sessões válidas de carga."
     } else {
      autonomy?.let { "${it.sessionsUsed} sessões válidas de descarga no histórico disponível" }
@@ -709,7 +714,14 @@ private fun History(sessions: List<Session>, settings: Settings, reading: Readin
   val chronological=sessions.sortedWith(compareBy<Session> { it.started }.thenBy { it.id })
   val partitions=if(groupNearby) SessionHistoryText.groupConsecutive(chronological.map { it.toBoundary() })
    else chronological.indices.map { listOf(it) }
-  partitions.map { indices -> indices.map { chronological[it] } }.asReversed()
+  // Um grupo inconsistente não pode apresentar uma soma enganosa: mostrar
+  // os registros separadamente permite inspecionar os dados originais.
+  partitions.flatMap { indices ->
+   val members=indices.map { chronological[it] }
+   if(members.size>1 && SessionArithmetic.group(members.map { it.toObservedPart() })==null)
+    members.map { listOf(it) }
+   else listOf(members)
+  }.asReversed()
  }
  val filteredGroups = remember(sessionGroups,filter) {
   sessionGroups.filter { members -> filter==0 || members.first().mode==(if(filter==1) Mode.CHARGING.name else Mode.DISCHARGING.name) }
@@ -821,6 +833,12 @@ private fun History(sessions: List<Session>, settings: Settings, reading: Readin
  },confirmButton={TextButton(onClick={showInfo=false}){Text("Entendi")}})
 }
 
+private fun Session.toObservedPart()=ObservedSessionPart(
+ mode=runCatching { Mode.valueOf(mode) }.getOrDefault(Mode.UNKNOWN),
+ startedAtMs=started, endedAtMs=ended, initialPercent=initial, finalPercent=final,
+ observedDurationMs=durationMs, samples=samples
+)
+
 private fun Session.toBoundary(): SessionBoundary = SessionBoundary(
  mode=runCatching { Mode.valueOf(mode) }.getOrDefault(Mode.UNKNOWN),
  started=started,ended=ended,initial=initial,final=final,closed=closed,reason=reason,
@@ -846,11 +864,11 @@ private fun GroupedSessionCard(
  val mode=runCatching { Mode.valueOf(last.mode) }.getOrDefault(Mode.UNKNOWN)
  val accent=if(mode==Mode.CHARGING) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
  val current=members.any { it.id==currentSessionId }
- val duration=members.sumOf { it.durationMs.coerceAtLeast(0L) }
- val samples=members.sumOf { it.samples.coerceAtLeast(0) }
- val gap=members.zipWithNext().sumOf { (before,after) -> (after.started-before.ended).coerceAtLeast(0L) }
+ val totals=remember(members) { SessionArithmetic.group(members.map { it.toObservedPart() }) }
+ val duration=totals?.observedDurationMs ?: 0L
+ val gap=totals?.unobservedBetweenMs ?: 0L
  val change=SessionHistoryText.variation(first.initial,last.final,mode)
- val pace=SessionHistoryText.pace(BatteryMath.sessionRate(first.initial,last.final,duration,samples),mode,!last.closed)
+ val pace=SessionHistoryText.pace(totals?.ratePercentHour,mode,!last.closed)
  val timeFormat=remember { SimpleDateFormat("HH:mm",Locale.forLanguageTag("pt-BR")) }
  val dateTimeFormat=remember { SimpleDateFormat("dd/MM HH:mm",Locale.forLanguageTag("pt-BR")) }
  val dateFormat=remember { SimpleDateFormat("yyyy-MM-dd",Locale.forLanguageTag("pt-BR")) }

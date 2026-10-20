@@ -12,13 +12,14 @@ import br.com.pulsobateria.BuildConfig
 
 /** Alterações exclusivas do build atual. Atualizar obrigatoriamente em cada release. */
 internal object ReleaseNews {
- const val VERSION_NAME = "0.1.0-alpha.61"
- const val VERSION_CODE = 61
+ const val VERSION_NAME = "0.1.0-alpha.63"
+ const val VERSION_CODE = 63
  val ITEMS = listOf(
-  "Corrigido o teste instrumentado de migração 8→9: agora cria corretamente as colunas legadas do Labs.",
-  "Adicionado teste Android para comprovar o pico térmico persistido em sessões de carga e descarga sem amostras brutas.",
-  "Captura PNG e exportação de sessões impedem operações concorrentes e desativam seus botões durante o processamento.",
-  "Relatório CSV agora inclui também datas e horários locais legíveis, além dos timestamps originais.",
+  "Labs ganha Monitoramento remoto com geração de QR Code no celular monitorado e leitura no celular controlador.",
+  "A conexão funciona pela mesma rede Wi‑Fi local, sem internet, exibindo bateria, corrente, temperatura e tempo do teste remoto.",
+  "O controlador pode iniciar e finalizar remotamente o teste solar com configuração rápida de céu, painel e duração.",
+  "A interface do Monitoramento remoto adota o layout em dois cartões Celular A/Celular B e o painel compacto de acompanhamento pedido para a beta.",
+  "A release adiciona permissões e dependências locais para QR Code, câmera e comunicação LAN do recurso remoto.",
 
  )
 }

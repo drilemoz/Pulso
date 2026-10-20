@@ -5,6 +5,7 @@ import androidx.room.Room
 import br.com.pulsobateria.data.*
 import br.com.pulsobateria.monitor.BatteryRepository
 import br.com.pulsobateria.labs.LabController
+import br.com.pulsobateria.labs.RemoteLabsManager
 import br.com.pulsobateria.monitor.SmartAlertDispatcher
 import br.com.pulsobateria.usage.UsageInsightsReader
 import kotlinx.coroutines.*
@@ -17,6 +18,7 @@ class PulsoApp: Application() {
  lateinit var backup: BackupManager; private set
  lateinit var usageInsights: UsageInsightsReader; private set
  lateinit var labs: LabController; private set
+ lateinit var remoteLabs: RemoteLabsManager; private set
  override fun onCreate() {
   super.onCreate()
   settings = SettingsStore(this)
@@ -25,6 +27,7 @@ class PulsoApp: Application() {
   repository = BatteryRepository(this, database.sessions(), settings, scope)
   usageInsights = UsageInsightsReader(this, database.sessions())
   labs = LabController(this, database.labs(), repository, scope)
+  remoteLabs = RemoteLabsManager(this, labs, repository, scope)
   SmartAlertDispatcher(this, repository, settings, scope).start()
  }
 }

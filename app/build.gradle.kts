@@ -12,8 +12,8 @@ android {
   minSdk = 26
   targetSdk = 35
   testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-  versionCode = 61
-  versionName = "0.1.0-alpha.61"
+  versionCode = 63
+  versionName = "0.1.0-alpha.63"
  }
  buildFeatures { compose = true; buildConfig = true; aidl = true }
  compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
@@ -47,6 +47,8 @@ dependencies {
  implementation("androidx.compose.material:material-icons-core")
  debugImplementation("androidx.compose.ui:ui-tooling")
  implementation("androidx.activity:activity-compose:1.10.1")
+ implementation("com.journeyapps:zxing-android-embedded:4.3.0")
+ implementation("com.google.zxing:core:3.5.3")
  implementation("androidx.core:core-ktx:1.16.0")
  implementation("androidx.core:core-splashscreen:1.0.1")
  implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.0")

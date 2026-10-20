@@ -1,3 +1,19 @@
+## 0.1.0-alpha.63
+
+- Labs ganha Monitoramento remoto com geração de QR Code no celular monitorado e leitura no celular controlador.
+- A conexão funciona pela mesma rede Wi‑Fi local, sem internet, exibindo bateria, corrente, temperatura e tempo do teste remoto.
+- O controlador pode iniciar e finalizar remotamente o teste solar com configuração rápida de céu, painel e duração.
+- A interface do Monitoramento remoto adota o layout em dois cartões Celular A/Celular B e o painel compacto de acompanhamento pedido para a beta.
+- A release adiciona permissões e dependências locais para QR Code, câmera e comunicação LAN do recurso remoto.
+
+## 0.1.0-alpha.62
+
+- Home e Sessões agora calculam as médias históricas usando somente sessões finalizadas, sem misturar a sessão ativa.
+- Transições de carga e descarga não somam o intervalo anterior na duração da nova sessão.
+- Agrupamentos de sessões somam apenas minutos observados, mostram lacunas separadas e recusam sequências inconsistentes.
+- Contagem de recargas por tipo de fonte acompanha a janela histórica realmente usada na previsão.
+- Testes numéricos cobrem somas de duração, variações percentuais, médias ponderadas e trocas de estado.
+
 ## 0.1.0-alpha.61
 
 - Corrigido o teste instrumentado de migração 8→9: agora cria corretamente as colunas legadas do Labs.

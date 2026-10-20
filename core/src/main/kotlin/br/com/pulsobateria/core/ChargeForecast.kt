@@ -54,7 +54,11 @@ object ChargeForecast {
   val matching = valid.takeIf { currentSource in setOf("USB","Tomada","Sem fio","Fonte externa") }
    ?.filter { it.source == currentSource }.orEmpty()
   val matchingRecent = matching.filter { it.end >= nowMs - RECENT_WINDOW_MS }.take(8)
-  val sourceAverage = average(matchingRecent,MIN_RECENT_MS,4) ?: average(matching,MIN_HISTORY_MS,4)
+  val matchingRecentAverage = average(matchingRecent,MIN_RECENT_MS,4)
+  val sourceAverage = matchingRecentAverage ?: average(matching,MIN_HISTORY_MS,4)
+  // O contador deve descrever exatamente as sessões usadas pela taxa escolhida.
+  val sourceSessionsUsed = if (sourceAverage==null) 0 else
+   if (matchingRecentAverage!=null) matchingRecent.size else matching.size
   // A etapa final frequentemente é mais lenta. Usar somente sessões observadas inteiramente
   // em 80..100%, sem atribuir proporções de sessões que cruzam 80%.
   val highSource = matching.filter { it.start >= 80 && it.finish <= 100 }
@@ -62,7 +66,7 @@ object ChargeForecast {
   val highAverage = average(highSource,10 * 60_000L,3) ?: average(highAll,10 * 60_000L,3)
   return HistoricalCharging(all.fullMs,all.rate,valid.size,recentAverage?.rate,
    if(recentAverage==null) 0 else recent.size,sourceAverage?.rate,
-   if(sourceAverage==null) 0 else matching.size,highAverage?.rate,sourceAverage!=null)
+   sourceSessionsUsed,highAverage?.rate,sourceAverage!=null)
  }
 
  /** Sempre exige status de carga na chamada, percentual/leitura recentes e taxas comprovadas. */

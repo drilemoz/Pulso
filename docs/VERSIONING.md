@@ -1,6 +1,6 @@
 # Versionamento
 
-Versão atual: **0.1.0-alpha.61**, **versionCode 61**.
+Versão atual: **0.1.0-alpha.63**, **versionCode 63**.
 
 Cada alteração no projeto deve aumentar sequencialmente o `versionCode` e o `versionName`, além de sincronizar README, CHANGELOG, RELEASE_NOTES e documentação de validação.
 
@@ -38,4 +38,6 @@ Alpha.59: máximo de temperatura observada, captura de tela e exportação CSV d
 
 Alpha.60: pico térmico persistido em Room v9; backup v7 com compatibilidade v1..7. Próxima alpha.61 / 61.
 
-Alpha.61: teste Room 8→9 e pico térmico das duas modalidades, captura/CSV sem concorrência, horários locais no CSV; Room v9 e backup v7 mantidos. Próxima alpha.62 / 62.
+Alpha.61: teste Room 8→9 e pico térmico das duas modalidades, captura/CSV sem concorrência, horários locais no CSV; Room v9 e backup v7 mantidos. Próxima alpha.63 / 62.
+
+Alpha.62: auditoria de totais Home/Sessões, exclusão da sessão aberta das médias históricas, correção do tempo em troca de modo, totalizador observacional para grupos e contagem de fonte usada. Próxima alpha.64 / 64.

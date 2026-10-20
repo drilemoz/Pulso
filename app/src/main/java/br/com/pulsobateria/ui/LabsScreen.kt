@@ -9,12 +9,14 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -25,16 +27,25 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import br.com.pulsobateria.core.LabMath
 import br.com.pulsobateria.core.LabReportMath
 import br.com.pulsobateria.core.LabComparisonQuality
 import br.com.pulsobateria.data.LabTest
+import br.com.pulsobateria.labs.RemoteRole
+import br.com.pulsobateria.labs.RemoteSnapshot
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.qrcode.QRCodeWriter
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import android.graphics.Bitmap
 import kotlin.math.roundToInt
 
 private data class SkyOption(val key: String, val emoji: String, val title: String, val subtitle: String)
@@ -57,6 +68,7 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
  val lifecycleOwner = LocalLifecycleOwner.current
  val active by vm.labCurrent.collectAsStateWithLifecycle()
  val history by vm.labHistory.collectAsStateWithLifecycle()
+ val remoteUi by vm.remoteUi.collectAsStateWithLifecycle()
  var page by rememberSaveable { mutableStateOf("home") }
  var solarCompareFirst by rememberSaveable { mutableStateOf<Long?>(null) }
  var solarCompareSecond by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -72,6 +84,14 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
  var recordingReported by rememberSaveable { mutableStateOf(false) }
  var notes by rememberSaveable { mutableStateOf("") }
  var conditionsExpanded by rememberSaveable { mutableStateOf(false) }
+ var showHostQr by rememberSaveable { mutableStateOf(false) }
+ var showRemoteStart by rememberSaveable { mutableStateOf(false) }
+ var remoteSky by rememberSaveable { mutableStateOf("nublado") }
+ var remotePanel by rememberSaveable { mutableStateOf("8") }
+ var remoteDuration by rememberSaveable { mutableStateOf("120") }
+ val scanLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
+  result.contents?.takeIf { it.isNotBlank() }?.let(vm::connectRemote)
+ }
  var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
  var hadActive by rememberSaveable { mutableStateOf(false) }
  LaunchedEffect(active?.id) {
@@ -105,6 +125,7 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
     item { LabMenuCard("☀️","Teste Solar","Carga, períodos sem carga e corrente média.") { page="solar" } }
     item { LabMenuCard("🔋","Teste de Consumo","Queda observada da bateria, sem fonte externa.") { page="discharge" } }
     item { LabMenuCard("📊","Comparar testes solares","Compare dois testes concluídos sem inventar medições.") { page="compare" } }
+    item { LabMenuCard("📡","Monitoramento remoto","QR Code, rede local e início remoto do teste solar.") { page="remote" } }
     item {
      Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
       Text("Últimos testes",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold)
@@ -231,6 +252,62 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
     }
     if(vm.labError!=null) item { Text(vm.labError ?: "",color=MaterialTheme.colorScheme.error) }
    }
+   "remote" -> {
+    item { TextButton(onClick={page="home"}) { Text("‹ Voltar ao Labs") } }
+    item {
+     Column(verticalArrangement=Arrangement.spacedBy(4.dp)) {
+      Text("☀️ Labs → Monitoramento remoto", style=MaterialTheme.typography.titleLarge, fontWeight=FontWeight.SemiBold)
+      Text("Use um celular conectado ao painel solar para monitorar e outro para controlar e visualizar pela mesma rede Wi‑Fi.", style=MaterialTheme.typography.bodySmall, color=MaterialTheme.colorScheme.onSurfaceVariant)
+     }
+    }
+    item {
+     RemoteGatewayRow(
+      onGenerate = { vm.startRemoteHosting(); showHostQr = true },
+      onScan = {
+       val options = ScanOptions().apply {
+        setDesiredBarcodeFormats(ScanOptions.QR_CODE)
+        setPrompt("Escaneie o QR Code do celular monitorado")
+        setBeepEnabled(false)
+        setOrientationLocked(false)
+       }
+       scanLauncher.launch(options)
+      }
+     )
+    }
+    item {
+     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+      Text("📶  Conexão Wi‑Fi local, sem internet", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+     }
+    }
+    if(remoteUi.statusMessage.isNotBlank()) item {
+     Surface(shape=RoundedCornerShape(14.dp), color=MaterialTheme.colorScheme.surfaceVariant) {
+      Text(remoteUi.statusMessage, modifier=Modifier.fillMaxWidth().padding(12.dp), style=MaterialTheme.typography.bodySmall)
+     }
+    }
+    if(remoteUi.actionMessage.isNotBlank()) item {
+     Text(remoteUi.actionMessage, style=MaterialTheme.typography.labelMedium, color=MaterialTheme.colorScheme.primary)
+    }
+    if(remoteUi.role == RemoteRole.HOST && remoteUi.hostEndpoint != null) item {
+     LabPanel("Celular A · conectado ao painel solar") {
+      Text(remoteUi.hostEndpoint!!.deviceName, style=MaterialTheme.typography.titleMedium, fontWeight=FontWeight.SemiBold)
+      Text("Pareamento ativo em ${remoteUi.hostEndpoint!!.host}:${remoteUi.hostEndpoint!!.port}", style=MaterialTheme.typography.bodySmall, color=MaterialTheme.colorScheme.onSurfaceVariant)
+      Row(horizontalArrangement=Arrangement.spacedBy(8.dp), modifier=Modifier.fillMaxWidth()) {
+       Button(onClick={showHostQr=true}, modifier=Modifier.weight(1f)) { Text("Mostrar QR Code") }
+       OutlinedButton(onClick={vm.stopRemoteHosting()}, modifier=Modifier.weight(1f)) { Text("Parar") }
+      }
+     }
+    }
+    if(remoteUi.role == RemoteRole.CONTROLLER && remoteUi.controllerEndpoint != null) item {
+     RemoteMonitorCard(
+      snapshot = remoteUi.snapshot,
+      connected = remoteUi.connected,
+      deviceName = remoteUi.controllerEndpoint!!.deviceName,
+      onStart = { showRemoteStart = true },
+      onStop = vm::stopRemoteLab,
+      onDisconnect = vm::disconnectRemote,
+     )
+    }
+   }
    "compare" -> {
     item { TextButton(onClick={page="home"}) { Text("‹ Voltar ao Labs") } }
     item { Text("Comparar testes solares",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold) }
@@ -297,6 +374,15 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
      shape=RoundedCornerShape(16.dp)) { Text(if(page=="solar") "▶  Iniciar teste solar" else "▶  Iniciar teste de consumo") }
    }
   }
+ }
+ if(showHostQr && remoteUi.hostEndpoint != null) {
+  RemoteQrDialog(payload = remoteUi.hostEndpoint!!.toQrPayload(), deviceName = remoteUi.hostEndpoint!!.deviceName, onClose = { showHostQr = false }, onStop = vm::stopRemoteHosting)
+ }
+ if(showRemoteStart) {
+  RemoteStartDialog(sky = remoteSky, onSky = { remoteSky = it }, panel = remotePanel, onPanel = { remotePanel = it }, duration = remoteDuration, onDuration = { remoteDuration = it }, onStart = {
+   showRemoteStart = false
+   vm.startRemoteSolar(remoteSky, remotePanel.toIntOrNull(), remoteDuration.toIntOrNull())
+  }, onClose = { showRemoteStart = false })
  }
  }
 }
@@ -675,3 +761,138 @@ private fun LabResultRow(label: String,value: String) {
   Text(value,style=MaterialTheme.typography.bodySmall,fontWeight=FontWeight.Medium)
  }
 }
+
+@Composable
+private fun RemoteGatewayRow(onGenerate: () -> Unit, onScan: () -> Unit) {
+ Row(horizontalArrangement=Arrangement.spacedBy(12.dp), modifier=Modifier.fillMaxWidth()) {
+  RemoteGatewayCard(title="Celular A", subtitle="Conectado ao painel solar", action="Gerar QR Code", symbol="📱", modifier=Modifier.weight(1f), onClick=onGenerate)
+  RemoteGatewayCard(title="Celular B", subtitle="Controle e visualização", action="Escanear QR Code", symbol="📲", modifier=Modifier.weight(1f), onClick=onScan)
+ }
+}
+
+@Composable
+private fun RemoteGatewayCard(title: String, subtitle: String, action: String, symbol: String, modifier: Modifier = Modifier, onClick: () -> Unit) {
+ Card(onClick=onClick, modifier=modifier, shape=RoundedCornerShape(26.dp), colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface)) {
+  Column(Modifier.fillMaxWidth().padding(18.dp), horizontalAlignment=Alignment.CenterHorizontally, verticalArrangement=Arrangement.spacedBy(14.dp)) {
+   Text(symbol, style=MaterialTheme.typography.headlineMedium)
+   Text(title, style=MaterialTheme.typography.headlineSmall, fontWeight=FontWeight.Bold)
+   Text(subtitle, style=MaterialTheme.typography.bodyMedium, color=MaterialTheme.colorScheme.onSurfaceVariant)
+   Text(action, style=MaterialTheme.typography.titleMedium, fontWeight=FontWeight.SemiBold)
+  }
+ }
+}
+
+@Composable
+private fun RemoteMonitorCard(snapshot: RemoteSnapshot?, connected: Boolean, deviceName: String, onStart: () -> Unit, onStop: () -> Unit, onDisconnect: () -> Unit) {
+ Card(shape=RoundedCornerShape(28.dp), colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface), border=BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
+  Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement=Arrangement.spacedBy(14.dp)) {
+   Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.SpaceBetween) {
+    Row(verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+     Text("📱", style=MaterialTheme.typography.titleLarge)
+     Text(deviceName, style=MaterialTheme.typography.headlineSmall, fontWeight=FontWeight.Bold)
+    }
+    Surface(shape=RoundedCornerShape(30.dp), color=if(connected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant) {
+     Text(if(connected) "Conectado" else "Desconectado", modifier=Modifier.padding(horizontal=14.dp, vertical=8.dp), color=if(connected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight=FontWeight.SemiBold)
+    }
+   }
+   Text("Prévia ilustrativa, não são leituras reais", style=MaterialTheme.typography.bodyMedium, color=MaterialTheme.colorScheme.onSurfaceVariant)
+   Row(horizontalArrangement=Arrangement.spacedBy(12.dp), modifier=Modifier.fillMaxWidth()) {
+    RemoteMetricCard("Bateria", snapshot?.batteryPercent?.let { "$it%" } ?: "--", progress = (snapshot?.batteryPercent ?: 0).coerceIn(0,100) / 100f, modifier=Modifier.weight(1f))
+    RemoteMetricCard("Corrente líquida", snapshot?.currentMa?.let { "${if(it>=0) "+" else ""}${it.roundToInt()}" } ?: "--", suffix = "mA", modifier=Modifier.weight(1f))
+   }
+   Row(horizontalArrangement=Arrangement.spacedBy(12.dp), modifier=Modifier.fillMaxWidth()) {
+    RemoteMetricCard("Temperatura", snapshot?.temperatureC?.let { "%.1f°C".format(Locale.getDefault(), it) } ?: "--", modifier=Modifier.weight(1f))
+    RemoteMetricCard("Tempo de teste", if((snapshot?.testElapsedMs ?: 0L) > 0L) duration(snapshot?.testElapsedMs ?: 0L) else "00:00:00", modifier=Modifier.weight(1f))
+   }
+   Card(shape=RoundedCornerShape(24.dp), colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surfaceVariant)) {
+    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement=Arrangement.spacedBy(10.dp)) {
+     Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.SpaceBetween) {
+      Text("Teste Solar", style=MaterialTheme.typography.headlineSmall, fontWeight=FontWeight.Bold)
+      Text(if(snapshot?.testRunning == true) "Em andamento" else "Aguardando", color=if(snapshot?.testRunning == true) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight=FontWeight.SemiBold)
+     }
+     RemoteStatusRow("Carregando", duration(snapshot?.chargingMs ?: 0L))
+     RemoteStatusRow("Sem carregamento", duration(snapshot?.notChargingMs ?: 0L))
+     RemoteStatusRow("Sem leitura", duration(snapshot?.unknownMs ?: 0L))
+    }
+   }
+   OutlinedButton(onClick={ if(snapshot?.testRunning == true) onStop() else onStart() }, modifier=Modifier.fillMaxWidth().heightIn(min=56.dp), shape=RoundedCornerShape(18.dp), colors=ButtonDefaults.outlinedButtonColors(contentColor=if(snapshot?.testRunning == true) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)) {
+    Text(if(snapshot?.testRunning == true) "Finalizar teste remoto" else "Iniciar teste solar remoto", style=MaterialTheme.typography.titleMedium)
+   }
+   TextButton(onClick=onDisconnect, modifier=Modifier.align(Alignment.End)) { Text("Desconectar") }
+  }
+ }
+}
+
+@Composable
+private fun RemoteMetricCard(title: String, value: String, suffix: String = "", progress: Float? = null, modifier: Modifier = Modifier) {
+ Card(modifier=modifier, shape=RoundedCornerShape(24.dp), colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surfaceVariant)) {
+  Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement=Arrangement.spacedBy(10.dp)) {
+   Text(title, style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurfaceVariant)
+   Text(value, style=MaterialTheme.typography.displaySmall, fontWeight=FontWeight.Bold)
+   if(suffix.isNotBlank()) Text(suffix, style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurfaceVariant)
+   if(progress != null) {
+    LinearProgressIndicator(progress={ progress.coerceIn(0f,1f) }, modifier=Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(20.dp)), color=MaterialTheme.colorScheme.secondary, trackColor=MaterialTheme.colorScheme.outlineVariant)
+   }
+  }
+ }
+}
+
+@Composable
+private fun RemoteStatusRow(label: String, value: String) {
+ Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween, verticalAlignment=Alignment.CenterVertically) {
+  Text(label, style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurfaceVariant)
+  Text(value, style=MaterialTheme.typography.headlineSmall)
+ }
+}
+
+@Composable
+private fun RemoteQrDialog(payload: String, deviceName: String, onClose: () -> Unit, onStop: () -> Unit) {
+ val bitmap = remember(payload) { buildQrBitmap(payload) }
+ val context = LocalContext.current
+ AlertDialog(onDismissRequest=onClose,
+  title={ Text("QR Code • $deviceName") },
+  text={ Column(verticalArrangement=Arrangement.spacedBy(12.dp), horizontalAlignment=Alignment.CenterHorizontally) {
+   Text("Escaneie este QR Code no outro celular, usando a mesma rede Wi‑Fi.")
+   if(bitmap != null) Image(bitmap=bitmap.asImageBitmap(), contentDescription="QR Code do monitoramento remoto", modifier=Modifier.size(220.dp))
+   Text(payload, style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurfaceVariant)
+  } },
+  confirmButton={ TextButton(onClick={
+   val clipboard=context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+   clipboard.setPrimaryClip(ClipData.newPlainText("QR remoto", payload))
+   Toast.makeText(context, "Código copiado", Toast.LENGTH_SHORT).show()
+  }) { Text("Copiar código") } },
+  dismissButton={ Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+   TextButton(onClick=onStop) { Text("Parar") }
+   TextButton(onClick=onClose) { Text("Fechar") }
+  } })
+}
+
+@Composable
+private fun RemoteStartDialog(sky: String, onSky: (String) -> Unit, panel: String, onPanel: (String) -> Unit, duration: String, onDuration: (String) -> Unit, onStart: () -> Unit, onClose: () -> Unit) {
+ AlertDialog(onDismissRequest=onClose,
+  title={ Text("Iniciar teste solar remoto") },
+  text={ Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
+   Text("Escolha uma configuração simples para o teste no celular monitorado.")
+   Text("Condição do céu", style=MaterialTheme.typography.titleSmall, fontWeight=FontWeight.SemiBold)
+   Row(horizontalArrangement=Arrangement.spacedBy(6.dp), modifier=Modifier.fillMaxWidth()) {
+    skyOptions.forEach { option -> LabChoice(option.emoji, sky == option.key, Modifier.weight(1f)) { onSky(option.key) } }
+   }
+   Text("Painel", style=MaterialTheme.typography.titleSmall, fontWeight=FontWeight.SemiBold)
+   Row(horizontalArrangement=Arrangement.spacedBy(8.dp), modifier=Modifier.fillMaxWidth()) {
+    listOf("8" to "8 W", "20" to "20 W").forEach { (value,title) -> LabChoice(title, panel == value, Modifier.weight(1f)) { onPanel(value) } }
+   }
+   Text("Duração", style=MaterialTheme.typography.titleSmall, fontWeight=FontWeight.SemiBold)
+   Row(horizontalArrangement=Arrangement.spacedBy(8.dp), modifier=Modifier.fillMaxWidth()) {
+    listOf("30" to "30 min", "60" to "1 h", "120" to "2 h").forEach { (value,title) -> LabChoice(title, duration == value, Modifier.weight(1f)) { onDuration(value) } }
+   }
+  } },
+  confirmButton={ TextButton(onClick=onStart) { Text("Iniciar") } },
+  dismissButton={ TextButton(onClick=onClose) { Text("Cancelar") } })
+}
+
+private fun buildQrBitmap(payload: String, size: Int = 900): Bitmap? = runCatching {
+ val matrix = QRCodeWriter().encode(payload, BarcodeFormat.QR_CODE, size, size)
+ Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).also { bitmap ->
+  for (x in 0 until size) for (y in 0 until size) bitmap.setPixel(x, y, if (matrix[x, y]) android.graphics.Color.BLACK else android.graphics.Color.WHITE)
+ }
+}.getOrNull()

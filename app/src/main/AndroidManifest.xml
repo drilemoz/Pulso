@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools">
  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+ <uses-permission android:name="android.permission.INTERNET"/>
+ <uses-permission android:name="android.permission.CAMERA"/>
  <!-- Acesso especial opt-in, solicitado apenas na aba Aplicativos. Não é permissão automática. -->
  <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions"/>
  <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
@@ -31,7 +33,7 @@
   </service>
   <service android:name=".monitor.MonitorService" android:exported="false" android:foregroundServiceType="specialUse">
    <property android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-    android:value="User-enabled offline battery telemetry with visible ongoing notification and local charging/discharging session recording; no network or wake locks."/>
+    android:value="User-enabled offline battery telemetry with visible ongoing notification, local charging/discharging session recording and optional local-network Labs remote control; no wake locks."/>
   </service>
  </application>
 </manifest>

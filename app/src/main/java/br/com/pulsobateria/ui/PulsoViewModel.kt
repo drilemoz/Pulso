@@ -15,6 +15,7 @@ import br.com.pulsobateria.data.Settings
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.withTimeoutOrNull
 import br.com.pulsobateria.data.LabTest
+import br.com.pulsobateria.labs.RemoteLabsUiState
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -23,6 +24,7 @@ class PulsoViewModel(application: Application): AndroidViewModel(application) {
  private val app = application as PulsoApp
  val labCurrent = app.labs.current
  val labHistory = app.labs.history.stateIn(viewModelScope,SharingStarted.WhileSubscribed(5000), emptyList<LabTest>())
+ val remoteUi = app.remoteLabs.ui.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), RemoteLabsUiState())
  var labError by mutableStateOf<String?>(null)
   private set
  fun startLab(sky: String, watts: Int?, minutes: Int?, screen: String,
@@ -59,6 +61,12 @@ class PulsoViewModel(application: Application): AndroidViewModel(application) {
  }
  fun stopLab() { viewModelScope.launch { runCatching { app.labs.stop() }.onFailure { labError=it.message } } }
  fun changeLabSky(sky: String) { viewModelScope.launch { runCatching { app.labs.changeSky(sky) }.onFailure { labError=it.message } } }
+ fun startRemoteHosting() { app.remoteLabs.startHosting() }
+ fun stopRemoteHosting() { app.remoteLabs.stopHosting() }
+ fun connectRemote(payload: String) { app.remoteLabs.connect(payload) }
+ fun disconnectRemote() { app.remoteLabs.disconnectController() }
+ fun startRemoteSolar(sky: String, watts: Int?, minutes: Int?) { app.remoteLabs.startRemoteSolar(sky, watts, minutes) }
+ fun stopRemoteLab() { app.remoteLabs.stopRemoteLab() }
  val reading = app.repository.reading
  fun sessionSamples(sessionId: Long): Flow<List<SessionSample>> = app.repository.sessionSamples(sessionId)
  fun sessionTelemetry(sessionId: Long): Flow<List<TelemetrySample>> = app.repository.sessionTelemetry(sessionId)

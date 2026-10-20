@@ -2,7 +2,7 @@
 
 - Android Kotlin/Compose, offline, sem anúncios/rastreamento/INTERNET. Não inventar medições ou capacidades do aparelho.
 - Antes de editar, ler README, docs/MEASUREMENTS.md e docs/VERSIONING.md.
-- Versão atual 0.1.0-alpha.61 / versionCode 61. Próxima 0.1.0-alpha.62 / 62. Incrementar sequencialmente cada entrega e sincronizar todos os documentos, Gradle, workflow e nome do ZIP.
+- Versão atual 0.1.0-alpha.63 / versionCode 63. Próxima 0.1.0-alpha.64 / 64. Incrementar sequencialmente cada entrega e sincronizar todos os documentos, Gradle, workflow e nome do ZIP.
 - Preservar applicationId. Keystore privada e Secrets nunca entram no ZIP de código ou repositório. Para Debug atualizável, requer Secrets estáveis; sem Secrets a chave temporária deve receber aviso.
 - Manter cálculos no módulo core, testáveis sem Android; validar nulos, sentinelas, sinal, relógio e lacunas.
 - Não iniciar foreground service fora de ação permitida; manter tipo specialUse e sua justificativa, sem simular dataSync/health. Não adicionar wake locks, permissões privilegiadas ou mecanismos de evasão.
@@ -82,4 +82,6 @@ Alpha.57: Novidades exclusivas do build, sem reutilização literal de itens ant
 
 - Alpha.60: Room v9 adiciona máximo térmico persistente por sessão, calculado a cada leitura válida; legados ficam NULL até leituras pós-migração. Backup JSON v7 conserva máximo e aceita arquivos 1..6. A captura usa ícone local e IO fora da UI; CSV revela origem parcial. Gate de Novidades obrigatório. Próxima alpha.61 / 61.
 
-- Alpha.61: testes instrumentados do Room corrigidos (nomes de coluna na preparação da v8), cobertura do pico em carga/descarga, captura e exportação sem concorrência e CSV com datas locais. Room v9/JSON v7 sem alterações; próxima alpha.62 / 62.
+- Alpha.61: testes instrumentados do Room corrigidos (nomes de coluna na preparação da v8), cobertura do pico em carga/descarga, captura e exportação sem concorrência e CSV com datas locais. Room v9/JSON v7 sem alterações; próxima alpha.63 / 62.
+
+- Alpha.62: Home/Sessões usam apenas sessões finalizadas para médias históricas; transição de estado não incorpora tempo do modo anterior; somas de agrupamentos observacionais validadas no core e teste; fonte de recarga apresenta contagem da janela usada. Não alterar Room v9, backup JSON v7 e AIDL v1. Próxima alpha.64 / 64.

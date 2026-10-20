@@ -174,6 +174,9 @@ class BatteryRepository(
   if (!paused && lastElapsed > 0 && BatteryMath.startsNewSession(lastMode,mode,lastElapsed,now,lastWall,wall)) {
    close(if (lastMode != mode) "Estado alterado" else "Intervalo sem observação")
    points.clear(); currentTracker=CurrentTracker(); calibrationLoaded=false
+   // Primeira leitura da nova sessão: NUNCA contar o intervalo da sessão
+   // anterior (nem o intervalo de uma lacuna) como tempo observado nesta.
+   lastElapsed=0L
   }
   if (level == null || mode == Mode.UNKNOWN) { close("Leitura indisponível"); points.clear(); currentTracker=CurrentTracker(); calibrationLoaded=false }
   // Carregar o valor real do DataStore antes de marcar calibração como carregada.

@@ -144,3 +144,24 @@ O Lab usa o serviço existente para leituras com tela apagada, mantendo Room atu
 As médias são feitas exclusivamente com resumos Room classificados `CHARGING`, e só aceitam sessões com ao menos três pontos, cinco minutos observados, ganho de pelo menos dois pontos, taxa de até 200 p.p./h, horários compatíveis e duração dentro da janela observada. Soma-se ganho dividido pela duração total: não são contados minutos sem amostra ou intervalos de recarga inferidos. Uma recarga parcial pode contribuir; o número 0–100% é *equivalente por extrapolação* e não implica ciclo integral observado.
 
 A média geral requer pelo menos trinta minutos observados e quatro p.p. ganhos. O histórico recente considera até oito sessões válidas encerradas nos últimos sete dias, exigindo quinze minutos e quatro p.p. Quando há amostra suficiente do tipo de fonte reportado pelo Android, sua taxa tem prioridade; categoria USB não prova origem solar ou carregador específico. A previsão combina 70% taxa local e 30% histórico quando ambos existem, usando apenas uma origem quando só uma existe. Na faixa 80–100% pode usar ritmo histórico separado somente se houve sessões válidas **inteiramente dentro desse intervalo** com dez minutos observados e três p.p. acumulados; isso não equivale a reconstruir a curva de outras sessões. Sem esses dados, permanece a projeção simples com sua incerteza. Leituras atuais com mais de 180 s, estado diferente de CHARGING, percentuais inválidos ou tempo acima de sete dias não geram novo horário de recarga. A taxa local/estimativa do Android continua disponível como fallback do cartão quando válida.
+
+## Auditoria pré-beta alpha.62: consistência Home e Sessões
+
+A média **histórica** de autonomia equivalente a 100% e de recarga equivalente a 0–100%
+usa exclusivamente sessões **finalizadas** válidas em ambas as telas. Uma sessão ativa
+não entra nessa soma porque seu ritmo já pode alimentar a taxa **ao vivo** do cartão de
+previsão da Home; incluí-la no histórico duplicaria parte da evidência. A previsão da
+Home pode divergir da média histórica de Sessões por misturar 70% da taxa local atual
+com 30% da taxa histórica, por selecionar sessões recentes ou por considerar a faixa
+80–100% ao carregar. Essa diferença não é erro de soma: são grandezas distintas.
+
+Na Sessões, a união visual valida modo, limites e níveis entre sessões e soma somente
+os `durationMs` observados; lacunas entre as sessões são mostradas fora do total.
+Quando registros são inconsistentes, são exibidos separadamente. A mudança entre
+CHARGING, DISCHARGING, FULL ou IDLE também reinicia o relógio da sessão, sem
+transferir minutos do estado anterior à duração da sessão nova.
+
+As diferenças de percentual são **pontos percentuais** da indicação do Android,
+não mAh nem carga elétrica acumulada. Nenhum teste de software confirma a exatidão
+metrológica de sensores OEM; isso exige testes no aparelho, com fonte e medidor
+externo se a intenção for aferir corrente absoluta.

@@ -1,3 +1,15 @@
+# Auditoria pré-beta 0.1.0-alpha.63 (20/10/2026)
+
+- Implementado o Labs → Monitoramento remoto com dois papéis locais: Celular A (gera QR Code) e Celular B (escaneia QR Code).
+- A conexão entre os aparelhos foi estruturada para LAN/Wi‑Fi local, sem internet, com pareamento temporário contendo IP, porta e token em QR Code.
+- O painel remoto mostra bateria, corrente líquida, temperatura, tempo de teste e resumo de períodos carregando / sem carregamento / sem leitura.
+- O controlador remoto pode iniciar e finalizar teste solar com configuração rápida de céu, painel e duração. O início remoto tenta subir o monitoramento do aparelho remoto, mas depende das permissões e restrições do Android no aparelho monitorado.
+- `python tools/check_release_news.py`: aprovado.
+- `python tools/validate_source.py`: aprovado após sincronizar versões, workflow, permissões e documentação da alpha.63.
+- Tentativa real de `./gradlew :app:assembleDebug --no-daemon`: falhou antes da compilação por `UnknownHostException` ao acessar `services.gradle.org` para baixar a distribuição do Gradle Wrapper.
+- Build Android, lint, testes Kotlin/JUnit oficiais do Gradle, testes instrumentados de câmera/QR/rede local e validação física entre dois aparelhos: pendentes neste ambiente.
+- O recurso remoto usa `INTERNET` e `CAMERA`, portanto esta alpha deixa de ser estritamente “sem INTERNET”; a comunicação prevista é apenas local na mesma rede Wi‑Fi.
+
 # Validação 0.1.0-alpha.61 (19/10/2026)
 
 - Revisão da alpha.60 e correção da fixture Android de Room v8: o nome de coluna gerado continha `$`, impedindo o teste instrumentado de representar o banco legado real.

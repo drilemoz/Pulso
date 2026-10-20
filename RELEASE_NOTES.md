@@ -1,3 +1,9 @@
+## 0.1.0-alpha.66
+
+- Corrigida a criação do teste Android de Carregamento Elétrico: duração alvo e prazo final agora são informados ao LabTest.
+- Adicionada regressão que bloqueia builds quando faltarem os parâmetros obrigatórios no teste instrumentado.
+- Correção baseada no workflow 46: o aplicativo Debug compilou, mas a compilação dos testes Android falhou; medições e banco foram preservados.
+
 ## 0.1.0-alpha.65
 
 - Labs recebe o Teste de Carregamento Elétrico com duração manual ou programada e verificação da fonte conectada informada pelo Android.

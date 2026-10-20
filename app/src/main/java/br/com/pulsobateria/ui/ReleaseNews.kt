@@ -12,14 +12,12 @@ import br.com.pulsobateria.BuildConfig
 
 /** Alterações exclusivas do build atual. Atualizar obrigatoriamente em cada release. */
 internal object ReleaseNews {
- const val VERSION_NAME = "0.1.0-alpha.65"
- const val VERSION_CODE = 65
+ const val VERSION_NAME = "0.1.0-alpha.66"
+ const val VERSION_CODE = 66
  val ITEMS = listOf(
-  "Labs recebe o Teste de Carregamento Elétrico com duração manual ou programada e verificação da fonte conectada informada pelo Android.",
-  "O carregamento elétrico registra bateria inicial e final, tempo efetivo carregando, corrente líquida média e lacunas observacionais.",
-  "Temperaturas inicial, média aritmética de leituras válidas, final e máxima ficam no relatório e histórico do Labs.",
-  "Room v10 migra a tabela Labs preservando resultados anteriores sem inventar médias térmicas retroativas.",
-  "Backup JSON v8 preserva a média térmica e a origem elétrica, mantendo leitura de backups antigos.",
+  "Corrigida a criação do teste Android de Carregamento Elétrico: duração alvo e prazo final agora são informados ao LabTest.",
+  "Adicionada regressão que bloqueia builds quando faltarem os parâmetros obrigatórios no teste instrumentado.",
+  "Correção baseada no workflow 46: o aplicativo Debug compilou, mas a compilação dos testes Android falhou; medições e banco foram preservados.",
 
  )
 }

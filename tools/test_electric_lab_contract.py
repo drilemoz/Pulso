@@ -23,7 +23,15 @@ assert '"electric" -> vm.startElectricLab(' in ui and '"ELECTRIC" -> "Pulso Bate
 assert 'Média calculada com ${test.temperatureCount} leituras válidas' in ui
 assert 'if(!electric)' in ui and 'if(test.kind=="ELECTRIC")' in ui
 assert 'freshEndTemp=recent?.takeIf { it.updated > (test.lastReadingAt ?: test.startedAt) }' in controller
-assert 'carregamentoEletricoPersisteTemperaturasEMedia' in (r/'app/src/androidTest/java/br/com/pulsobateria/data/RoomMigrationTest.kt').read_text()
+instrumented=(r/'app/src/androidTest/java/br/com/pulsobateria/data/RoomMigrationTest.kt').read_text()
+assert 'carregamentoEletricoPersisteTemperaturasEMedia' in instrumented
+# Workflow 46: Kotlin rejected a LabTest fixture missing required targetMs/deadlineAt.
+# Guard the exact electric fixture, not just presence of unrelated fields in the file.
+fixture=instrumented.split('fun carregamentoEletricoPersisteTemperaturasEMedia()',1)[1].split('val stored=db.labs().byId(savedId)',1)[0]
+assert re.search(r'\bLabTest\(',fixture)
+assert re.search(r'\btargetMs\s*=\s*60_000L',fixture)
+assert re.search(r'\bdeadlineAt\s*=\s*61_000L',fixture)
+assert 'endedAt=61_000L' in fixture and 'status="COMPLETED"' in fixture
 # Executa exatamente as três instruções SQL presentes na migração declarada, não uma reimplementação.
 section=store.split('val MIGRATION_9_10 =',1)[1].split('val MIGRATION_8_9',1)[0]
 sql=re.findall(r'db.execSQL\("([^"\n]+)"\)',section)

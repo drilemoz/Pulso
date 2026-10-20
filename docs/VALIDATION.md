@@ -1,3 +1,13 @@
+# Validação 0.1.0-alpha.66 (20/10/2026)
+
+- Workflow 46 (GitHub Actions): :core:test, :app:testDebugUnitTest e :app:assembleDebug **concluíram** na alpha.65; falha em :app:compileDebugAndroidTestKotlin. Não afirmar que o workflow global foi aprovado.
+- Erros do Kotlin em `RoomMigrationTest.kt:167`: `No value passed for parameter 'targetMs'` e `No value passed for parameter 'deadlineAt'`, na criação de `LabTest` do teste `carregamentoEletricoPersisteTemperaturasEMedia`.
+- Correção: fixture do teste instrumentado inclui `targetMs=60_000L` e `deadlineAt=61_000L`, coerentes com início em 1_000 ms e encerramento em 61_000 ms.
+- `tools/test_electric_lab_contract.py` agora verifica os dois argumentos na fixture específica. Nenhuma alteração de lógica de medição, UI, Room v10, backup JSON v8 ou integração remota.
+- Validações locais desta entrega: 18 scripts `tools/test_*.py`, `tools/validate_source.py`, `tools/check_release_news.py`, teste do gate de Novidades (9 cenários), 16 testes SQLite, 16 invariantes Kotlin/JVM de integração AIDL e 15 conjuntos de auditoria matemática Kotlin/JVM: **aprovados**.
+- `./gradlew :app:assembleDebugAndroidTest --no-daemon --stacktrace` tentado neste ambiente, mas falhou **antes do build** com `UnknownHostException` em `services.gradle.org`, ao tentar obter Gradle 8.11.1.
+- Compilação do teste instrumentado foi **corrigida no código, não confirmada por um novo workflow**. Os testes instrumentados ainda não foram executados num dispositivo/emulador.
+
 # Validação 0.1.0-alpha.65 (20/10/2026)
 
 - Implementado o teste de carregamento elétrico no Labs, respeitando leituras reais da bateria. O início exige conexão informada pelo Android e `CHARGING`/`FULL`, além do serviço de monitoramento ativo.

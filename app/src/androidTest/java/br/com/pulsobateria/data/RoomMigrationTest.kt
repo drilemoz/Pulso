@@ -161,7 +161,8 @@ class RoomMigrationTest {
   try {
    val savedId=db.labs().insert(LabTest(
     kind="ELECTRIC",sky="",skyChanges="",panelWatts=null,
-    startedAt=1_000L,endedAt=61_000L,status="COMPLETED",
+    targetMs=60_000L,startedAt=1_000L,deadlineAt=61_000L,
+    endedAt=61_000L,status="COMPLETED",
     initialPercent=35,finalPercent=39,
     initialTemperatureC=35.0,finalTemperatureC=38.0,maxTemperatureC=40.0,
     temperatureSumC=113.0,temperatureCount=3,electricSource="Tomada"))

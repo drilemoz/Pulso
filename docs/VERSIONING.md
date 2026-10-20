@@ -1,6 +1,6 @@
 # Versionamento
 
-Versão atual: **0.1.0-alpha.65**, **versionCode 65**.
+Versão atual: **0.1.0-alpha.66**, **versionCode 66**.
 
 Cada alteração no projeto deve aumentar sequencialmente o `versionCode` e o `versionName`, além de sincronizar README, CHANGELOG, RELEASE_NOTES e documentação de validação.
 
@@ -45,3 +45,5 @@ Alpha.62: auditoria de totais Home/Sessões, exclusão da sessão aberta das mé
 Alpha.64: correção dos testes de Novidades e AIDL/LAN; pareamento privado, limites de conexão e leituras remotas recentes. Próxima alpha.65 / 65.
 
 Alpha.65: teste de carregamento elétrico no Labs; média térmica persistida de leituras válidas. Room v10 com migração 9→10; backup JSON v8 compatível com versões anteriores. Próxima alpha.66 / 66.
+
+Alpha.66: corrigida fixture Android de Carregamento Elétrico em `RoomMigrationTest` e ampliado contrato para impedir regressão. Sem migração nova, Room v10 e backup JSON v8 mantidos. Próxima alpha.67 / 67.

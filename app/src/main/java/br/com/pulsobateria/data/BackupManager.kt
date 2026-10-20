@@ -29,7 +29,7 @@ class BackupManager(
 ) {
  companion object {
   const val FORMAT = "br.com.pulsobateria.backup"
-  const val VERSION = 8
+  const val VERSION = 9
   const val MAX_BYTES = 64 * 1024 * 1024
   private fun digest(value: ByteArray): String = MessageDigest.getInstance("SHA-256")
    .digest(value).joinToString("") { "%02x".format(it) }
@@ -86,6 +86,7 @@ class BackupManager(
     put("maxTemperatureC",t.maxTemperatureC ?: JSONObject.NULL)
     put("temperatureSumC",t.temperatureSumC); put("temperatureCount",t.temperatureCount)
     put("electricSource",t.electricSource)
+    put("stopAtFull",t.stopAtFull)
     put("screenCondition",t.screenCondition); put("cameraReported",t.cameraReported)
     put("wifiReported",t.wifiReported); put("recordingReported",t.recordingReported)
     put("notes",t.notes)
@@ -222,6 +223,7 @@ class BackupManager(
     temperatureSumC=if(backupVersion>=8) t.getDouble("temperatureSumC") else 0.0,
     temperatureCount=if(backupVersion>=8) t.getInt("temperatureCount") else 0,
     electricSource=if(backupVersion>=8) t.getString("electricSource") else "",
+    stopAtFull=backupVersion>=9 && t.getBoolean("stopAtFull"),
     screenCondition=if(backupVersion>=6) t.getString("screenCondition") else "NAO_INFORMADA",
     cameraReported=backupVersion>=6 && t.getBoolean("cameraReported"),
     wifiReported=backupVersion>=6 && t.getBoolean("wifiReported"),
@@ -240,7 +242,9 @@ class BackupManager(
    }) &&
    t.targetMs?.let { it in 60_000L..86_400_000L } != false &&
    t.startedAt>0 && t.endedAt!=null && t.endedAt>=t.startedAt &&
-   t.status in setOf("STOPPED","COMPLETED") &&
+   t.status in setOf("STOPPED","COMPLETED","FULL") &&
+   (t.status!="FULL" || t.kind in setOf("SOLAR","ELECTRIC") && t.stopAtFull && t.finalPercent==100) &&
+   (t.kind!="DISCHARGE" || !t.stopAtFull) &&
    t.initialPercent?.let { it in 0..100 } != false && t.finalPercent?.let { it in 0..100 } != false &&
    t.chargingMs in 0..(t.endedAt-t.startedAt) &&
    t.notChargingMs in 0..(t.endedAt-t.startedAt-t.chargingMs) &&

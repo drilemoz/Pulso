@@ -12,12 +12,13 @@ import br.com.pulsobateria.BuildConfig
 
 /** Alterações exclusivas do build atual. Atualizar obrigatoriamente em cada release. */
 internal object ReleaseNews {
- const val VERSION_NAME = "0.1.0-alpha.66"
- const val VERSION_CODE = 66
+ const val VERSION_NAME = "0.1.0-alpha.67"
+ const val VERSION_CODE = 67
  val ITEMS = listOf(
-  "Corrigida a criação do teste Android de Carregamento Elétrico: duração alvo e prazo final agora são informados ao LabTest.",
-  "Adicionada regressão que bloqueia builds quando faltarem os parâmetros obrigatórios no teste instrumentado.",
-  "Correção baseada no workflow 46: o aplicativo Debug compilou, mas a compilação dos testes Android falhou; medições e banco foram preservados.",
+  "Labs Solar e Carregamento Elétrico recebem Finalizar ao atingir 100%, ligado por padrão e disponível mesmo na duração manual.",
+  "Uma nova leitura válida de 100% encerra automaticamente o teste, preserva os valores observados e emite a notificação de conclusão.",
+  "O histórico e o relatório distinguem término por bateria cheia, por prazo e por ação manual, sem desligar fisicamente o carregador.",
+  "Room v11 e backup JSON v9 preservam a escolha individual do teste, com migração que não ativa a função em registros antigos.",
 
  )
 }

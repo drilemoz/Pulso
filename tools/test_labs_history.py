@@ -29,7 +29,7 @@ checks = {
  "UI invokes ViewModel": 'fun deleteLab(id: Long)' in vm and 'app.labs.deleteFinished(id)' in vm,
  "Copy exports the measured fields": 'reportText(test)' in screen and 'setPrimaryClip' in screen,
  "Thermal summary uses real values": all(x in screen for x in ('temperatureText(test.initialTemperatureC)','temperatureText(test.finalTemperatureC)','temperatureText(test.maxTemperatureC)')),
- "Room schema migration 7→8": '@Database(entities = [Session::class, SessionSample::class, TelemetrySample::class, LabTest::class], version = 10' in store and 'MIGRATION_7_8' in store,
+ "Room schema migration 7→8": '@Database(entities = [Session::class, SessionSample::class, TelemetrySample::class, LabTest::class], version = 11' in store and 'MIGRATION_7_8' in store,
 }
 for title, ok in checks.items():
  print(('OK' if ok else 'FAIL')+' — '+title)

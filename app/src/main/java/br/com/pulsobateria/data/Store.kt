@@ -228,6 +228,8 @@ data class LabTest(
  @ColumnInfo(defaultValue = "0") val temperatureCount: Int = 0,
  // Fonte apontada pelo Android no início; USB não identifica a origem elétrica.
  @ColumnInfo(defaultValue = "''") val electricSource: String = "",
+ // Desativado nas linhas legadas; escolha explícita no início das novas recargas.
+ @ColumnInfo(defaultValue = "0") val stopAtFull: Boolean = false,
  // Condições informadas manualmente, nunca inferidas do uso de outros apps.
  @ColumnInfo(defaultValue = "'NAO_INFORMADA'") val screenCondition: String = "NAO_INFORMADA",
  @ColumnInfo(defaultValue = "0") val cameraReported: Boolean = false,
@@ -310,11 +312,17 @@ interface SessionDao {
  @Update suspend fun update(session: Session)
  @Query("DELETE FROM sessions WHERE id NOT IN (SELECT id FROM sessions ORDER BY id DESC LIMIT 500)") suspend fun trim()
 }
-@Database(entities = [Session::class, SessionSample::class, TelemetrySample::class, LabTest::class], version = 10, exportSchema = true)
+@Database(entities = [Session::class, SessionSample::class, TelemetrySample::class, LabTest::class], version = 11, exportSchema = true)
 abstract class BatteryDatabase: RoomDatabase() {
  abstract fun sessions(): SessionDao
  abstract fun labs(): LabDao
  companion object {
+  val MIGRATION_10_11 = object : Migration(10, 11) {
+   override fun migrate(db: SupportSQLiteDatabase) {
+    // Testes legados, inclusive os interrompidos, não ganham conclusão automática retroativa.
+    db.execSQL("ALTER TABLE `lab_tests` ADD COLUMN `stopAtFull` INTEGER NOT NULL DEFAULT 0")
+   }
+  }
   val MIGRATION_9_10 = object : Migration(9, 10) {
    override fun migrate(db: SupportSQLiteDatabase) {
     // Não reconstruir médias antigas de leituras que não foram armazenadas.

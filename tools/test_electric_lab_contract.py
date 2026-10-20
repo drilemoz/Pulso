@@ -9,9 +9,9 @@ backup=(r/'app/src/main/java/br/com/pulsobateria/data/BackupManager.kt').read_te
 ui=(r/'app/src/main/java/br/com/pulsobateria/ui/LabsScreen.kt').read_text()
 vm=(r/'app/src/main/java/br/com/pulsobateria/ui/PulsoViewModel.kt').read_text()
 app=(r/'app/src/main/java/br/com/pulsobateria/PulsoApp.kt').read_text()
-assert 'version = 10' in store and 'MIGRATION_9_10' in store
+assert 'version = 11' in store and 'MIGRATION_9_10' in store
 assert 'BatteryDatabase.MIGRATION_9_10' in app
-assert 'const val VERSION = 8' in backup
+assert 'const val VERSION = 9' in backup
 assert '"ELECTRIC"' in backup and 'temperatureSumC' in backup and 'temperatureCount' in backup
 assert 'temperatureSumC=if(backupVersion>=8)' in backup
 assert 'temperatureCount=if(backupVersion>=8)' in backup
@@ -45,4 +45,4 @@ with sqlite3.connect(':memory:') as db:
  db.execute("INSERT INTO lab_tests(id,kind,status,temperatureSumC,temperatureCount,electricSource) VALUES(3,'ELECTRIC','COMPLETED',115.4,3,'Tomada')")
  assert db.execute('SELECT ROUND(temperatureSumC/temperatureCount,2) FROM lab_tests WHERE id=3').fetchone()[0]==38.47
  assert db.execute('PRAGMA table_info(lab_tests)').fetchall()
-print('PASS: Labs elétrico, persistência térmica, backup JSON v8, migração 9→10 SQLite')
+print('PASS: Labs elétrico, persistência térmica, backup JSON v9 (elétrico desde v8), migração 9→10 SQLite')

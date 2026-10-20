@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import br.com.pulsobateria.MainActivity
 import br.com.pulsobateria.R
 import br.com.pulsobateria.core.LabMath
+import br.com.pulsobateria.core.LabFullCharge
 import br.com.pulsobateria.core.LabTemperature
 import br.com.pulsobateria.data.LabDao
 import br.com.pulsobateria.data.LabTest
@@ -74,24 +75,24 @@ class LabController(
 
  suspend fun start(sky: String, panelWatts: Int?, minutes: Int?,
   screen: String = "NAO_INFORMADA", camera: Boolean = false, wifi: Boolean = false,
-  recording: Boolean = false, notes: String = "") {
+  recording: Boolean = false, notes: String = "", stopAtFull: Boolean = true) {
   require(sky in listOf("forte", "parcial", "nublado", "chuva"))
   require(panelWatts == null || panelWatts in 1..200)
-  startInternal("SOLAR", sky, panelWatts, minutes, screen, camera, wifi, recording, notes)
+  startInternal("SOLAR", sky, panelWatts, minutes, screen, camera, wifi, recording, notes, stopAtFull)
  }
 
  /** Teste de carga por fonte elétrica declarada, com presença de conexão reportada pelo Android. */
  suspend fun startElectric(minutes: Int?, screen: String = "NAO_INFORMADA",
   camera: Boolean = false, wifi: Boolean = false, recording: Boolean = false,
-  notes: String = "") = startInternal("ELECTRIC", "", null, minutes, screen, camera, wifi, recording, notes)
+  notes: String = "", stopAtFull: Boolean = true) = startInternal("ELECTRIC", "", null, minutes, screen, camera, wifi, recording, notes, stopAtFull)
 
  /** Teste de descarga: sem fonte de energia externa no início. */
  suspend fun startDischarge(minutes: Int?, screen: String = "NAO_INFORMADA",
   camera: Boolean = false, wifi: Boolean = false, recording: Boolean = false,
-  notes: String = "") = startInternal("DISCHARGE", "", null, minutes, screen, camera, wifi, recording, notes)
+  notes: String = "") = startInternal("DISCHARGE", "", null, minutes, screen, camera, wifi, recording, notes, false)
 
  private suspend fun startInternal(kind: String, sky: String, panelWatts: Int?, minutes: Int?,
-  screen: String, camera: Boolean, wifi: Boolean, recording: Boolean, notes: String) {
+  screen: String, camera: Boolean, wifi: Boolean, recording: Boolean, notes: String, stopAtFull: Boolean) {
   require(kind in setOf("SOLAR", "DISCHARGE", "ELECTRIC"))
   require(minutes == null || minutes in 1..1440)
   require(screen in setOf("NAO_INFORMADA", "ACESA", "APAGADA"))
@@ -114,6 +115,11 @@ class LabController(
      "Conecte o carregador elétrico e aguarde uma leitura recente de carga do Android."
     }
    }
+   if (kind in setOf("SOLAR", "ELECTRIC") && stopAtFull) {
+    check(reading?.percent != 100) {
+     "A bateria já está em 100%. Desative 'Finalizar ao atingir 100%' para iniciar mesmo assim."
+    }
+   }
    val initialTemp = reading?.temperature?.takeIf(::validTemperature)
    val tempAggregate = LabTemperature.add(0.0, 0, initialTemp)
    val targetMs = minutes?.toLong()?.times(60_000L)
@@ -127,6 +133,7 @@ class LabController(
     maxTemperatureC=initialTemp,
     temperatureSumC=tempAggregate.sumC,temperatureCount=tempAggregate.count,
     electricSource=if(kind=="ELECTRIC") reading?.source?.takeIf { it in setOf("Tomada", "USB", "Sem fio", "Fonte externa") } ?: "Fonte externa" else "",
+    stopAtFull=stopAtFull && kind in setOf("SOLAR", "ELECTRIC"),
     screenCondition=screen,cameraReported=camera,wifiReported=wifi,
     recordingReported=recording,notes=notes)
    val id = withContext(Dispatchers.IO) { dao.insert(test).also { dao.trim() } }
@@ -213,6 +220,12 @@ class LabController(
     externalSeen=test.externalSeen || (test.kind=="DISCHARGE" && reading.plugged==true))
    withContext(Dispatchers.IO) { dao.update(test) }
    mutable.value=test
+   // A observação completa permanece gravada antes do encerramento automático.
+   // Uma amostra antiga, 100% apenas inferido, ou modo de descarga não dispara.
+   if (LabFullCharge.shouldStop(test.kind, test.stopAtFull, reading.percent,
+      reading.updated, test.startedAt, oldWall)) {
+    finishLocked(test, reading.updated, "FULL")
+   }
   }
  }
 
@@ -235,7 +248,7 @@ class LabController(
    externalSeen=test.externalSeen || (test.kind=="DISCHARGE" && recent?.plugged==true))
   withContext(Dispatchers.IO) { dao.update(saved) }
   mutable.value=null
-  if (status=="COMPLETED") notifyFinished(saved)
+  if (status=="COMPLETED" || status=="FULL") notifyFinished(saved)
  }
 
  private fun notifyFinished(test: LabTest) {
@@ -248,7 +261,7 @@ class LabController(
   },PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
   val total=(test.endedAt ?: test.startedAt)-test.startedAt
   val unknown=LabMath.unknownMs(total,test.chargingMs,test.notChargingMs)
-  val content=if(test.kind=="DISCHARGE") {
+  val content=if(test.status=="FULL") "Bateria atingiu 100% • relatório salvo automaticamente." else if(test.kind=="DISCHARGE") {
    val drop=LabMath.dischargePoints(test.initialPercent,test.finalPercent,test.externalSeen)
    when {
     test.externalSeen -> "Fonte externa detectada; consulte o relatório (teste interferido)."

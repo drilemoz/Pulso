@@ -1,3 +1,14 @@
+# Validação 0.1.0-alpha.67 (20/10/2026)
+
+- Adicionada opção de finalização em 100% aos formulários Solar e Elétrico, inclusive testes manuais e iniciados por rede local (ativada por padrão para novos testes).
+- Um percentual novo de 100% do Android encerra o teste depois de persistir a leitura; status FULL distingue essa causa de prazo e finalização manual, com notificação onde autorizada. Teste de descarga não sofre alteração.
+- Room v11: migração explícita 10→11 adiciona stopAtFull com valor 0 para testes legados, sem alterar duração, corrente, temperatura ou sessões.
+- Backup JSON v9 persiste a opção e aceita versões antigas (1..8) sem habilitar retroativamente a regra.
+- Testes específicos: `core/.../LabFullChargeTest.kt`, `tools/test_labs_full_charge.py` e `RoomMigrationTest.kt` (incluindo migração desde v10).
+- 19 scripts `tools/test_*.py` aprovados localmente; `tools/validate_source.py` e `tools/check_release_news.py` aprovados; `bash tools/run_math_audit.sh` (15 conjuntos), `bash tools/run_external_labs_policy_test.sh` (16 invariantes) e execução isolada de 7 casos Kotlin/JVM da nova regra aprovados.
+- O app não desliga fisicamente o carregador; conclusão com a tela apagada depende de serviço foreground ativo e das restrições do Android.
+- Build Android/Gradle e instrumentação em aparelho real: pendentes até validação no GitHub Actions.
+
 # Validação 0.1.0-alpha.66 (20/10/2026)
 
 - Workflow 46 (GitHub Actions): :core:test, :app:testDebugUnitTest e :app:assembleDebug **concluíram** na alpha.65; falha em :app:compileDebugAndroidTestKotlin. Não afirmar que o workflow global foi aprovado.

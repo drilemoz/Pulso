@@ -28,14 +28,14 @@ class PulsoViewModel(application: Application): AndroidViewModel(application) {
  var labError by mutableStateOf<String?>(null)
   private set
  fun startLab(sky: String, watts: Int?, minutes: Int?, screen: String,
-  camera: Boolean, wifi: Boolean, recording: Boolean, notes: String, ensureMonitor: () -> Unit) =
-  startLabInternal(ensureMonitor) { app.labs.start(sky,watts,minutes,screen,camera,wifi,recording,notes) }
+  camera: Boolean, wifi: Boolean, recording: Boolean, notes: String, stopAtFull: Boolean, ensureMonitor: () -> Unit) =
+  startLabInternal(ensureMonitor) { app.labs.start(sky,watts,minutes,screen,camera,wifi,recording,notes,stopAtFull) }
  fun startDischargeLab(minutes: Int?, screen: String, camera: Boolean, wifi: Boolean,
   recording: Boolean, notes: String, ensureMonitor: () -> Unit) =
   startLabInternal(ensureMonitor) { app.labs.startDischarge(minutes,screen,camera,wifi,recording,notes) }
  fun startElectricLab(minutes: Int?, screen: String, camera: Boolean, wifi: Boolean,
-  recording: Boolean, notes: String, ensureMonitor: () -> Unit) =
-  startLabInternal(ensureMonitor) { app.labs.startElectric(minutes,screen,camera,wifi,recording,notes) }
+  recording: Boolean, notes: String, stopAtFull: Boolean, ensureMonitor: () -> Unit) =
+  startLabInternal(ensureMonitor) { app.labs.startElectric(minutes,screen,camera,wifi,recording,notes,stopAtFull) }
  private fun startLabInternal(ensureMonitor: () -> Unit, start: suspend () -> Unit) {
   labError = null
   app.repository.serviceError.value = null

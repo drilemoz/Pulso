@@ -22,6 +22,7 @@ class RoomMigrationTest {
  @Test fun migracaoDaVersao7PreservaTesteDeConsumo() = checkMigration(7)
  @Test fun migracaoDaVersao8PreservaResumoSemInventarPico() = checkMigration(8)
  @Test fun migracaoDaVersao9PreservaLabsSemInventarMedia() = checkMigration(9)
+ @Test fun migracaoDaVersao10PreservaOpcaoDesativadaEmTestesLegados() = checkMigration(10)
 
  private fun checkMigration(from: Int) = runBlocking {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
@@ -101,10 +102,15 @@ class RoomMigrationTest {
    if(from>=9) {
     legacy.execSQL("ALTER TABLE `sessions` ADD COLUMN `maxTemperatureC` REAL")
    }
+   if(from>=10) {
+    legacy.execSQL("ALTER TABLE `lab_tests` ADD COLUMN `temperatureSumC` REAL NOT NULL DEFAULT 0.0")
+    legacy.execSQL("ALTER TABLE `lab_tests` ADD COLUMN `temperatureCount` INTEGER NOT NULL DEFAULT 0")
+    legacy.execSQL("ALTER TABLE `lab_tests` ADD COLUMN `electricSource` TEXT NOT NULL DEFAULT ''")
+   }
    legacy.version=from
   } finally { legacy.close() }
   val db=Room.databaseBuilder(context,BatteryDatabase::class.java,name)
-   .addMigrations(BatteryDatabase.MIGRATION_1_2,BatteryDatabase.MIGRATION_2_3,BatteryDatabase.MIGRATION_3_4,BatteryDatabase.MIGRATION_4_5,BatteryDatabase.MIGRATION_5_6,BatteryDatabase.MIGRATION_6_7,BatteryDatabase.MIGRATION_7_8,BatteryDatabase.MIGRATION_8_9,BatteryDatabase.MIGRATION_9_10).build()
+   .addMigrations(BatteryDatabase.MIGRATION_1_2,BatteryDatabase.MIGRATION_2_3,BatteryDatabase.MIGRATION_3_4,BatteryDatabase.MIGRATION_4_5,BatteryDatabase.MIGRATION_5_6,BatteryDatabase.MIGRATION_6_7,BatteryDatabase.MIGRATION_7_8,BatteryDatabase.MIGRATION_8_9,BatteryDatabase.MIGRATION_9_10,BatteryDatabase.MIGRATION_10_11).build()
   try {
    assertTrue(db.sessions().exportTelemetry().isEmpty())
    if(from>=6) {
@@ -112,6 +118,7 @@ class RoomMigrationTest {
     assertEquals(0,old.temperatureCount)
     assertEquals(0.0,old.temperatureSumC,0.0)
     assertEquals("",old.electricSource)
+    assertFalse(old.stopAtFull)
    }
    if(from==7) {
     val old=db.labs().exportAll().single()
@@ -124,7 +131,7 @@ class RoomMigrationTest {
     assertFalse(old.wifiReported)
     assertFalse(old.recordingReported)
     assertEquals("",old.notes)
-   } else if(from==8 || from==9) {
+   } else if(from==8 || from==9 || from==10) {
     val old=db.labs().exportAll().single()
     assertEquals("DISCHARGE",old.kind)
     assertNull(old.maxTemperatureC)
@@ -165,10 +172,11 @@ class RoomMigrationTest {
     endedAt=61_000L,status="COMPLETED",
     initialPercent=35,finalPercent=39,
     initialTemperatureC=35.0,finalTemperatureC=38.0,maxTemperatureC=40.0,
-    temperatureSumC=113.0,temperatureCount=3,electricSource="Tomada"))
+    temperatureSumC=113.0,temperatureCount=3,electricSource="Tomada",stopAtFull=true))
    val stored=db.labs().byId(savedId)!!
    assertEquals("ELECTRIC",stored.kind)
    assertEquals("Tomada",stored.electricSource)
+   assertTrue(stored.stopAtFull)
    assertEquals(35,stored.initialPercent)
    assertEquals(39,stored.finalPercent)
    assertEquals(3,stored.temperatureCount)

@@ -1,6 +1,13 @@
 # Pulso Bateria
 
-**0.1.0-alpha.66 • versionCode 66** — Android nativo, Kotlin e Jetpack Compose.
+**0.1.0-alpha.67 • versionCode 67** — Android nativo, Kotlin e Jetpack Compose.
+
+## Novidades da alpha.67
+
+- Labs Solar e Carregamento Elétrico recebem Finalizar ao atingir 100%, ligado por padrão e disponível mesmo na duração manual.
+- Uma nova leitura válida de 100% encerra automaticamente o teste, preserva os valores observados e emite a notificação de conclusão.
+- O histórico e o relatório distinguem término por bateria cheia, por prazo e por ação manual, sem desligar fisicamente o carregador.
+- Room v11 e backup JSON v9 preservam a escolha individual do teste, com migração que não ativa a função em registros antigos.
 
 ## Novidades da alpha.66
 

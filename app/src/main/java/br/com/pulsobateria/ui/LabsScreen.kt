@@ -79,6 +79,7 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
  var customWatts by rememberSaveable { mutableStateOf("") }
  var timer by rememberSaveable { mutableStateOf("120") }
  var customMinutes by rememberSaveable { mutableStateOf("") }
+ var stopAtFull by rememberSaveable { mutableStateOf(true) }
  // Condições declaradas pelo usuário; o Android não observa o estado de outros apps.
  var screenCondition by rememberSaveable { mutableStateOf("NAO_INFORMADA") }
  var cameraReported by rememberSaveable { mutableStateOf(false) }
@@ -114,6 +115,7 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
  val completed=remember(history) { history.filter { it.status != "RUNNING" } }
  val solarCompleted=remember(completed) { completed.filter { it.kind == "SOLAR" } }
  val isConfigPage=active==null && (page=="solar" || page=="discharge" || page=="electric")
+ val alreadyFull = stopAtFull && reading.percent==100 && (page=="solar" || page=="electric")
  Box(modifier.fillMaxSize()) {
  LazyColumn(Modifier.fillMaxSize(),
   contentPadding=PaddingValues(start=16.dp,top=10.dp,end=16.dp,bottom=if(isConfigPage) 108.dp else 24.dp),
@@ -126,8 +128,8 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
    "home" -> {
     item { Text("Escolha um experimento para medir a bateria em condições reais.",
      style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant) }
-    item { LabMenuCard("☀️","Teste Solar","Carga, períodos sem carga e corrente média.") { page="solar" } }
-    item { LabMenuCard("🔌","Carregamento Elétrico","Recarga pela rede elétrica: bateria, temperatura e corrente.") { page="electric" } }
+    item { LabMenuCard("☀️","Teste Solar","Carga, períodos sem carga e corrente média.") { stopAtFull=true; page="solar" } }
+    item { LabMenuCard("🔌","Carregamento Elétrico","Recarga pela rede elétrica: bateria, temperatura e corrente.") { stopAtFull=true; page="electric" } }
     item { LabMenuCard("🔋","Teste de Consumo","Queda observada da bateria, sem fonte externa.") { page="discharge" } }
     item { LabMenuCard("📊","Comparar testes solares","Compare dois testes concluídos sem inventar medições.") { page="compare" } }
     item { LabMenuCard("📡","Monitoramento remoto","QR Code, rede local e início remoto do teste solar.") { page="remote" } }
@@ -226,6 +228,21 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
        label={Text("Duração em minutos (1 a 1440)")},singleLine=true,
        keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number),modifier=Modifier.fillMaxWidth())
       Text(if(timer=="manual") "Você finaliza quando quiser." else "Término automático com relatório e notificação (sujeito às restrições do Android).",
+       style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+     }
+    }
+    if(solar || electric) item {
+     LabPanel("Encerramento automático") {
+      Row(modifier=Modifier.fillMaxWidth().heightIn(min=54.dp).clickable { stopAtFull=!stopAtFull },
+       verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.spacedBy(10.dp)) {
+       Checkbox(checked=stopAtFull,onCheckedChange=null)
+       Column(Modifier.weight(1f)) {
+        Text("Finalizar ao atingir 100%",style=MaterialTheme.typography.bodyMedium,fontWeight=FontWeight.SemiBold)
+        Text("Ativado por padrão. Salva o relatório quando o Android registrar 100%.",
+         style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+       }
+      }
+      Text("Vale também para testes manuais. Se houver um prazo, termina no primeiro evento: 100% observado ou prazo. O app não desliga o carregador.",
        style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
      }
     }
@@ -383,6 +400,8 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
      Text("Confira a duração e a potência informadas.",style=MaterialTheme.typography.labelSmall,
       color=MaterialTheme.colorScheme.error)
     }
+    if(alreadyFull) Text("Bateria já está em 100%. Desative a finalização automática para iniciar.",
+     style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.error)
     if(page=="electric" && !electricReady) {
      Text("Aguarde uma leitura recente com o carregador conectado.",style=MaterialTheme.typography.labelSmall,
       color=MaterialTheme.colorScheme.error)
@@ -390,14 +409,14 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
     Button(onClick={
      when(page) {
       "solar" -> vm.startLab(sky,selectedWatts,selectedMinutes,
-       screenCondition,cameraReported,wifiReported,recordingReported,notes) { onMonitor(true) }
+       screenCondition,cameraReported,wifiReported,recordingReported,notes,stopAtFull) { onMonitor(true) }
       "electric" -> vm.startElectricLab(selectedMinutes,screenCondition,
-       cameraReported,wifiReported,recordingReported,notes) { onMonitor(true) }
+       cameraReported,wifiReported,recordingReported,notes,stopAtFull) { onMonitor(true) }
       else -> vm.startDischargeLab(selectedMinutes,screenCondition,
        cameraReported,wifiReported,recordingReported,notes) { onMonitor(true) }
      }
     },
-     enabled=validDuration && (page!="solar" || validWatts) && (page!="electric" || electricReady),
+     enabled=!alreadyFull && validDuration && (page!="solar" || validWatts) && (page!="electric" || electricReady),
      modifier=Modifier.fillMaxWidth().heightIn(min=52.dp),
      shape=RoundedCornerShape(16.dp)) { Text(when(page) { "solar" -> "▶  Iniciar teste solar"; "electric" -> "▶  Iniciar carregamento elétrico"; else -> "▶  Iniciar teste de consumo" }) }
    }
@@ -548,6 +567,7 @@ private fun RunningLabCard(test: LabTest,now: Long,vm: PulsoViewModel) {
  LabPanel(if(discharge) "⏱️ Consumo em andamento" else if(electric) "⏱️ Carregamento elétrico em andamento" else "⏱️ Teste solar em andamento") {
   Text(duration(total),style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Bold)
   if(test.deadlineAt != null) Text("Restante: ${duration((test.deadlineAt-now).coerceAtLeast(0))}")
+  if(!discharge && test.stopAtFull) Text("✓ Finalização automática ao atingir 100%", style=MaterialTheme.typography.bodySmall, color=MaterialTheme.colorScheme.primary)
   if(!discharge && !electric) Text("Céu: ${skyLabel(test.sky)} • Painel: ${test.panelWatts ?: "?"} W")
   else if(electric) Text("Fonte detectada: ${test.electricSource} (conforme Android)")
   else Text("Sem carregador • ${if(test.externalSeen) "Fonte externa detectada!" else "Nenhuma interferência detectada"}",
@@ -618,6 +638,8 @@ private fun reportText(test: LabTest): String {
   appendLine("Fim: ${date(test.endedAt ?: test.startedAt)}")
   appendLine("Duração: ${duration(total)}")
   appendLine("Bateria: ${percentText(test.initialPercent)} → ${percentText(test.finalPercent)}")
+  appendLine("Encerramento: ${if(test.status=="FULL") "Automático ao atingir 100%" else if(test.status=="COMPLETED") "Automático por duração" else "Manual"}")
+  if(!discharge) appendLine("Finalizar ao atingir 100%: ${if(test.stopAtFull) "Sim" else "Não"}")
   appendLine(if(discharge) "Queda: ${drop?.let { "$it pontos percentuais" } ?: "Não conclusiva"}"
    else "Variação: ${delta?.let { "$it pontos percentuais" } ?: "Indisponível"}")
   if(discharge) {
@@ -702,7 +724,7 @@ private fun LabResult(test: LabTest, onDelete: (Long) -> Unit) {
       style=MaterialTheme.typography.labelMedium)
     }
    }
-   Text("${date(test.startedAt)} • ${if(test.status=="COMPLETED") "Automático" else "Manual"}" +
+   Text("${date(test.startedAt)} • ${when(test.status) { "FULL" -> "100% atingidos"; "COMPLETED" -> "Automático"; else -> "Manual" }}" +
     if(!discharge && !electric) " • ${test.panelWatts ?: "?"} W" else if(electric) " • ${test.electricSource}" else "",
     style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
    if(!expanded) {
@@ -738,6 +760,7 @@ private fun LabResult(test: LabTest, onDelete: (Long) -> Unit) {
      LabResultRow("Carregando",duration(test.chargingMs))
      LabResultRow("Sem carregar",duration(test.notChargingMs))
     }
+    if(test.status=="FULL") LabResultRow("Encerramento", "Automático ao atingir 100%")
     if(missing>0L) Text("Os intervalos sem leitura não foram classificados.",
      style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
     HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant)
@@ -921,6 +944,7 @@ private fun RemoteStartDialog(sky: String, onSky: (String) -> Unit, panel: Strin
   title={ Text("Iniciar teste solar remoto") },
   text={ Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
    Text("Escolha uma configuração simples para o teste no celular monitorado.")
+   Text("O teste solar remoto também terminará automaticamente ao atingir 100% (configuração padrão).", style=MaterialTheme.typography.bodySmall, color=MaterialTheme.colorScheme.onSurfaceVariant)
    Text("Condição do céu", style=MaterialTheme.typography.titleSmall, fontWeight=FontWeight.SemiBold)
    Row(horizontalArrangement=Arrangement.spacedBy(6.dp), modifier=Modifier.fillMaxWidth()) {
     skyOptions.forEach { option -> LabChoice(option.emoji, sky == option.key, Modifier.weight(1f)) { onSky(option.key) } }

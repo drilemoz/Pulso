@@ -10,7 +10,6 @@ import androidx.core.content.ContextCompat
 import br.com.pulsobateria.monitor.BatteryRepository
 import br.com.pulsobateria.monitor.MonitorService
 import br.com.pulsobateria.core.LabMath
-import br.com.pulsobateria.data.LabTest
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -21,8 +20,6 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONObject
@@ -30,13 +27,14 @@ import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
 import java.net.Inet4Address
+import java.net.InetAddress
+import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketTimeoutException
 import java.util.Collections
 import java.util.UUID
-import kotlin.math.roundToInt
 
 private const val REMOTE_VERSION = 1
 
@@ -67,7 +65,7 @@ data class RemoteEndpoint(
             val port = uri.getQueryParameter("port")?.toIntOrNull() ?: 0
             val token = uri.getQueryParameter("token")?.trim().orEmpty()
             val name = uri.getQueryParameter("name")?.trim().orEmpty().ifBlank { "Celular remoto" }
-            require(host.isNotBlank() && token.length >= 8 && port in 1024..65535)
+            require(isLocalIpv4(host) && token.matches(Regex("[0-9a-fA-F]{20,64}")) && port in 1024..65535)
             RemoteEndpoint(host, port, token, name)
         }.getOrNull()
     }
@@ -140,7 +138,6 @@ class RemoteLabsManager(
     private val repository: BatteryRepository,
     private val scope: CoroutineScope,
 ) {
-    private val mutex = Mutex()
     private val mutable = MutableStateFlow(RemoteLabsUiState())
     val ui = mutable.asStateFlow()
 
@@ -156,8 +153,7 @@ class RemoteLabsManager(
                 mutable.value = mutable.value.copy(statusMessage = "Não foi possível descobrir o IP local. Conecte-se ao Wi‑Fi e tente novamente.")
                 return@launch
             }
-            val socket = ServerSocket(0)
-            socket.reuseAddress = true
+            val socket = ServerSocket(0, 16, InetAddress.getByName(ip))
             serverSocket = socket
             val endpoint = RemoteEndpoint(
                 host = ip,
@@ -232,11 +228,11 @@ class RemoteLabsManager(
     fun startRemoteSolar(sky: String, panelWatts: Int?, minutes: Int?) {
         val endpoint = mutable.value.controllerEndpoint ?: return
         scope.launch(Dispatchers.IO) {
-            val request = JSONObject().put("type", "startSolar").put("token", endpoint.token)
+            val payload = JSONObject().put("type", "startSolar").put("token", endpoint.token)
                 .put("sky", sky)
-            if (panelWatts != null) request.put("panelWatts", panelWatts)
-            if (minutes != null) request.put("minutes", minutes)
-            val response = request(endpoint, request)
+            if (panelWatts != null) payload.put("panelWatts", panelWatts)
+            if (minutes != null) payload.put("minutes", minutes)
+            val response = request(endpoint, payload)
             val ok = response?.optBoolean("ok") == true
             mutable.value = mutable.value.copy(actionMessage = if (ok) "Teste solar remoto iniciado." else response?.optString("message") ?: "Falha ao iniciar teste remoto.")
         }
@@ -253,6 +249,8 @@ class RemoteLabsManager(
 
     private suspend fun handleClient(socket: Socket, endpoint: RemoteEndpoint) {
         socket.use { client ->
+            if (!mutable.value.hosting || mutable.value.hostEndpoint?.token != endpoint.token) return
+            client.soTimeout = 5000
             val line = runCatching { BufferedReader(InputStreamReader(client.getInputStream(), Charsets.UTF_8)).readLine() }.getOrNull() ?: return
             val request = runCatching { JSONObject(line) }.getOrNull() ?: return
             val token = request.optString("token")
@@ -287,17 +285,17 @@ class RemoteLabsManager(
     }
 
     private suspend fun localSnapshot(): RemoteSnapshot {
-        val reading = repository.reading.value
-        val active = labs.snapshot()
         val now = System.currentTimeMillis()
+        val reading = repository.reading.value.takeIf { it.updated in (now-90_000L)..now }
+        val active = labs.snapshot()
         val total = active?.let { ((it.endedAt ?: now) - it.startedAt).coerceAtLeast(0L) } ?: 0L
         val chargingMs = active?.chargingMs ?: 0L
         val notChargingMs = active?.notChargingMs ?: 0L
         return RemoteSnapshot(
             deviceName = Build.MODEL?.trim().orEmpty().ifBlank { "Celular A" },
-            batteryPercent = reading.percent,
-            currentMa = reading.current,
-            temperatureC = reading.temperature,
+            batteryPercent = reading?.percent,
+            currentMa = reading?.current,
+            temperatureC = reading?.temperature,
             testElapsedMs = total,
             testRunning = active != null,
             chargingMs = chargingMs,
@@ -326,27 +324,43 @@ class RemoteLabsManager(
 
     private suspend fun request(endpoint: RemoteEndpoint, request: JSONObject): JSONObject? = withContext(Dispatchers.IO) {
         runCatching {
-            Socket(endpoint.host, endpoint.port).use { socket ->
-                socket.soTimeout = 4000
+            Socket().use { socket ->
+                socket.connect(InetSocketAddress(endpoint.host, endpoint.port), 3500)
+                socket.soTimeout = if (request.optString("type") == "startSolar") 32_000 else 4000
                 val writer = OutputStreamWriter(socket.getOutputStream(), Charsets.UTF_8)
                 writer.write(request.toString())
                 writer.write("\n")
                 writer.flush()
-                BufferedReader(InputStreamReader(socket.getInputStream(), Charsets.UTF_8)).use { reader ->
-                    val line = reader.readLine() ?: return@use null
-                    JSONObject(line)
-                }
+                val reader = BufferedReader(InputStreamReader(socket.getInputStream(), Charsets.UTF_8))
+                val line = reader.readLine() ?: return@use null
+                JSONObject(line)
             }
         }.getOrNull()
     }
 
+    /** Host LAN apenas em IPv4 privado; não expor serviço de controle pela conexão celular. */
     private fun localIpv4Address(): String? = runCatching {
         Collections.list(NetworkInterface.getNetworkInterfaces())
             .asSequence()
-            .filter { it.isUp && !it.isLoopback }
+            .filter { it.isUp && !it.isLoopback &&
+                (it.name.startsWith("wlan", ignoreCase=true) ||
+                 it.name.startsWith("ap", ignoreCase=true) ||
+                 it.name.startsWith("swlan", ignoreCase=true)) }
             .flatMap { Collections.list(it.inetAddresses).asSequence() }
             .filterIsInstance<Inet4Address>()
-            .firstOrNull { !it.isLoopbackAddress && it.hostAddress?.contains(':') == false }
-            ?.hostAddress
+            .mapNotNull { it.hostAddress }
+            .firstOrNull(::isLocalIpv4)
     }.getOrNull()
+}
+
+private fun isLocalIpv4(host: String): Boolean {
+    val segments = host.split('.')
+    if (segments.size != 4) return false
+    val parts = segments.map { value ->
+        value.toIntOrNull()?.takeIf { it in 0..255 && (value == "0" || !value.startsWith('0')) }
+            ?: return false
+    }
+    val a = parts[0]
+    val b = parts[1]
+    return a == 10 || (a == 172 && b in 16..31) || (a == 192 && b == 168)
 }

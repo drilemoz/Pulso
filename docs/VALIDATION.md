@@ -1,3 +1,18 @@
+# Validação 0.1.0-alpha.64 (20/10/2026)
+
+- Workflow Pulso-Android-Pulso-Bateria-44 (20/10/2026): falhou antes da compilação Android no `tools/test_release_news_gate.py` por data fixa da alpha.62 (esperava 19/10; CHANGELOG registrava 20/10).
+- Corrigido teste negativo para localizar o cabeçalho real da release anterior; verificação mantém reprovação quando novidade atual é reutilizada no histórico.
+- Corrigida expectativa antiga de `sem INTERNET` do teste AIDL: AIDL preserva suas restrições, LAN opcional usa INTERNET.
+- Protocolo remoto reforçado com IPv4 privado, servidor ligado somente ao IP Wi-Fi escolhido, prazo de conexão/leitura e dados recentes.
+- Correção de possível falha de compilação: variável local `request` no envio solar escondia a função `request(endpoint, payload)`.
+- `python tools/validate_source.py` e `python tools/check_release_news.py`: aprovados; os 9 cenários de bloqueio de Novidades passaram.
+- Todos os 17 scripts locais `tools/test_*.py`: aprovados, incluindo 16 casos SQLite, 27 contratos AIDL e 15 contratos QR/LAN.
+- `bash tools/run_external_labs_policy_test.sh`: 16 invariantes Kotlin/JVM aprovados.
+- `bash tools/run_math_audit.sh`: 15 conjuntos de verificações Kotlin/JVM de cálculos aprovados.
+- 71 arquivos Kotlin analisados por PSI, sem erros sintáticos; `RemoteLabsManager.kt` compilado isoladamente com Kotlin 1.9 e stubs de Android/JSON/repositório, sem erros. Esses resultados **não** substituem a compilação Android com dependências oficiais.
+- Tentativa real de `./gradlew :core:test :app:assembleDebug --no-daemon --stacktrace`: interrompida antes da compilação por `UnknownHostException` em `services.gradle.org`, ao baixar Gradle 8.11.1.
+- Build Android, testes instrumentados e verificação com dois aparelhos reais ainda pendentes. Não declarar APK funcional nem beta validada.
+
 # Auditoria pré-beta 0.1.0-alpha.63 (20/10/2026)
 
 - Implementado o Labs → Monitoramento remoto com dois papéis locais: Celular A (gera QR Code) e Celular B (escaneia QR Code).

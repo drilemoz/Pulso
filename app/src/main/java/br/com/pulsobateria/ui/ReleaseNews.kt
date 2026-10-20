@@ -12,14 +12,15 @@ import br.com.pulsobateria.BuildConfig
 
 /** Alterações exclusivas do build atual. Atualizar obrigatoriamente em cada release. */
 internal object ReleaseNews {
- const val VERSION_NAME = "0.1.0-alpha.63"
- const val VERSION_CODE = 63
+ const val VERSION_NAME = "0.1.0-alpha.64"
+ const val VERSION_CODE = 64
  val ITEMS = listOf(
-  "Labs ganha Monitoramento remoto com geração de QR Code no celular monitorado e leitura no celular controlador.",
-  "A conexão funciona pela mesma rede Wi‑Fi local, sem internet, exibindo bateria, corrente, temperatura e tempo do teste remoto.",
-  "O controlador pode iniciar e finalizar remotamente o teste solar com configuração rápida de céu, painel e duração.",
-  "A interface do Monitoramento remoto adota o layout em dois cartões Celular A/Celular B e o painel compacto de acompanhamento pedido para a beta.",
-  "A release adiciona permissões e dependências locais para QR Code, câmera e comunicação LAN do recurso remoto.",
+  "Corrigida colisão entre o comando JSON e o método de envio, que impediria compilar a inicialização solar remota.",
+  "Corrigido o teste de Novidades para reconhecer a versão anterior sem depender de uma data fixa no CHANGELOG.",
+  "O contrato de integração AIDL permanece protegido enquanto a verificação diferencia a comunicação LAN autorizada.",
+  "Pareamento remoto agora aceita somente IPv4 privado e o servidor escuta apenas na interface Wi-Fi selecionada.",
+  "Conexões LAN têm prazo máximo de tentativa e leituras remotas antigas não são apresentadas como atuais.",
+  "A tela remota identifica medições reais, bloqueia comandos quando desconectada e solicita monitoramento no celular A.",
 
  )
 }

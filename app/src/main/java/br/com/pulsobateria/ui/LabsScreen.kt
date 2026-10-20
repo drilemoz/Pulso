@@ -262,7 +262,7 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
     }
     item {
      RemoteGatewayRow(
-      onGenerate = { vm.startRemoteHosting(); showHostQr = true },
+      onGenerate = { onMonitor(true); vm.startRemoteHosting(); showHostQr = true },
       onScan = {
        val options = ScanOptions().apply {
         setDesiredBarcodeFormats(ScanOptions.QR_CODE)
@@ -795,7 +795,7 @@ private fun RemoteMonitorCard(snapshot: RemoteSnapshot?, connected: Boolean, dev
      Text(if(connected) "Conectado" else "Desconectado", modifier=Modifier.padding(horizontal=14.dp, vertical=8.dp), color=if(connected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight=FontWeight.SemiBold)
     }
    }
-   Text("Prévia ilustrativa, não são leituras reais", style=MaterialTheme.typography.bodyMedium, color=MaterialTheme.colorScheme.onSurfaceVariant)
+   Text(if(connected) "Leituras recebidas do Android no outro celular." else "Sem conexão. Leituras indisponíveis.", style=MaterialTheme.typography.bodyMedium, color=MaterialTheme.colorScheme.onSurfaceVariant)
    Row(horizontalArrangement=Arrangement.spacedBy(12.dp), modifier=Modifier.fillMaxWidth()) {
     RemoteMetricCard("Bateria", snapshot?.batteryPercent?.let { "$it%" } ?: "--", progress = (snapshot?.batteryPercent ?: 0).coerceIn(0,100) / 100f, modifier=Modifier.weight(1f))
     RemoteMetricCard("Corrente líquida", snapshot?.currentMa?.let { "${if(it>=0) "+" else ""}${it.roundToInt()}" } ?: "--", suffix = "mA", modifier=Modifier.weight(1f))
@@ -815,7 +815,7 @@ private fun RemoteMonitorCard(snapshot: RemoteSnapshot?, connected: Boolean, dev
      RemoteStatusRow("Sem leitura", duration(snapshot?.unknownMs ?: 0L))
     }
    }
-   OutlinedButton(onClick={ if(snapshot?.testRunning == true) onStop() else onStart() }, modifier=Modifier.fillMaxWidth().heightIn(min=56.dp), shape=RoundedCornerShape(18.dp), colors=ButtonDefaults.outlinedButtonColors(contentColor=if(snapshot?.testRunning == true) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)) {
+   OutlinedButton(enabled=connected, onClick={ if(snapshot?.testRunning == true) onStop() else onStart() }, modifier=Modifier.fillMaxWidth().heightIn(min=56.dp), shape=RoundedCornerShape(18.dp), colors=ButtonDefaults.outlinedButtonColors(contentColor=if(snapshot?.testRunning == true) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)) {
     Text(if(snapshot?.testRunning == true) "Finalizar teste remoto" else "Iniciar teste solar remoto", style=MaterialTheme.typography.titleMedium)
    }
    TextButton(onClick=onDisconnect, modifier=Modifier.align(Alignment.End)) { Text("Desconectar") }

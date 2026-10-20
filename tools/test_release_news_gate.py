@@ -35,7 +35,12 @@ assert run([(news,'"'+first+'",','"",')])!=0
 assert run([(news,'"'+second+'",','"'+first+'",')])!=0
 assert run([('CHANGELOG.md',header,previous)])!=0
 assert run([(news,first,'Texto ausente do changelog')])!=0
-assert run([('CHANGELOG.md',previous+' (19/10/2026)',previous+' (19/10/2026)\n\n- '+first)])!=0
+# A data das releases é informativa e pode variar; capturar o cabeçalho real.
+changelog=(root/'CHANGELOG.md').read_text()
+match=re.search(r'^'+re.escape(previous)+r'(?: \([^\n)]*\))?$', changelog, re.M)
+assert match is not None, 'Cabeçalho da versão anterior ausente'
+previous_header=match.group(0)
+assert run([('CHANGELOG.md',previous_header,previous_header+'\n\n- '+first)])!=0
 assert run([('RELEASE_NOTES.md',header,previous)])!=0
 assert run([('RELEASE_NOTES.md','- '+second,'- Texto removido do release.')])!=0
 print('Release news gate: 9 scenarios passed')

@@ -1,6 +1,15 @@
 # Pulso Bateria
 
-**0.1.0-alpha.63 • versionCode 63** — Android nativo, Kotlin e Jetpack Compose.
+**0.1.0-alpha.64 • versionCode 64** — Android nativo, Kotlin e Jetpack Compose.
+
+## Novidades da alpha.64
+
+- Corrigida colisão entre o comando JSON e o método de envio, que impediria compilar a inicialização solar remota.
+- Corrigido o teste de Novidades para reconhecer a versão anterior sem depender de uma data fixa no CHANGELOG.
+- O contrato de integração AIDL permanece protegido enquanto a verificação diferencia a comunicação LAN autorizada.
+- Pareamento remoto agora aceita somente IPv4 privado e o servidor escuta apenas na interface Wi-Fi selecionada.
+- Conexões LAN têm prazo máximo de tentativa e leituras remotas antigas não são apresentadas como atuais.
+- A tela remota identifica medições reais, bloqueia comandos quando desconectada e solicita monitoramento no celular A.
 
 ## Novidades da alpha.63
 

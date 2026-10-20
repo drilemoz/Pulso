@@ -2,7 +2,7 @@
 """Regression tests for the release-news build gate."""
 import tempfile, pathlib, shutil, runpy, contextlib, io
 root = pathlib.Path(__file__).resolve().parents[1]
-paths = ['app/build.gradle.kts','app/src/main/java/br/com/pulsobateria/ui/ReleaseNews.kt','CHANGELOG.md','tools/check_release_news.py']
+paths = ['app/build.gradle.kts','app/src/main/java/br/com/pulsobateria/ui/ReleaseNews.kt','CHANGELOG.md','RELEASE_NOTES.md','tools/check_release_news.py']
 def run(changes=None):
  with tempfile.TemporaryDirectory() as tmp:
   d=pathlib.Path(tmp)
@@ -20,10 +20,22 @@ def run(changes=None):
    return 1
 news='app/src/main/java/br/com/pulsobateria/ui/ReleaseNews.kt'
 assert run()==0, 'Current build must pass'
-assert run([(news,'const val VERSION_CODE = 57','const val VERSION_CODE = 55')])!=0, 'Old news version must fail'
-assert run([(news,'"Novidades rejeita itens copiados de versões anteriores para evitar anúncios repetidos.",','"",')])!=0, 'Empty news item must fail'
-assert run([(news,'"A validação exige alterações exclusivas do build atual, registradas no CHANGELOG.",','"Novidades rejeita itens copiados de versões anteriores para evitar anúncios repetidos.",')])!=0, 'Duplicate item must fail'
-assert run([('CHANGELOG.md','## 0.1.0-alpha.57','## 0.1.0-alpha.55')])!=0, 'Wrong changelog heading must fail'
-assert run([(news,'Novidades rejeita itens copiados de versões anteriores para evitar anúncios repetidos.','Texto diferente do CHANGELOG nesta versão, portanto deve falhar.')])!=0, 'News missing from changelog must fail'
-assert run([('CHANGELOG.md','## 0.1.0-alpha.56 (19/10/2026)', '## 0.1.0-alpha.56 (19/10/2026)\n\n- '+"Novidades rejeita itens copiados de versões anteriores para evitar anúncios repetidos." )])!=0, 'Reused item from older release must fail'
-print('Release news gate: 7 scenarios passed')
+# Obter versionamento e novidades do build real; os testes não podem ficar presos à alpha anterior.
+import re
+gradle_text=(root/'app/build.gradle.kts').read_text()
+version=int(re.search(r'versionCode\s*=\s*(\d+)',gradle_text).group(1))
+current_news=(root/news).read_text()
+entries=re.findall(r'^\s*"([^"\n]+)",?$',current_news,re.M)
+assert len(entries)>=2
+first,second=entries[:2]
+header=f'## 0.1.0-alpha.{version}'
+previous=f'## 0.1.0-alpha.{version-1}'
+assert run([(news,f'const val VERSION_CODE = {version}',f'const val VERSION_CODE = {version-1}')])!=0
+assert run([(news,'"'+first+'",','"",')])!=0
+assert run([(news,'"'+second+'",','"'+first+'",')])!=0
+assert run([('CHANGELOG.md',header,previous)])!=0
+assert run([(news,first,'Texto ausente do changelog')])!=0
+assert run([('CHANGELOG.md',previous+' (19/10/2026)',previous+' (19/10/2026)\n\n- '+first)])!=0
+assert run([('RELEASE_NOTES.md',header,previous)])!=0
+assert run([('RELEASE_NOTES.md','- '+second,'- Texto removido do release.')])!=0
+print('Release news gate: 9 scenarios passed')

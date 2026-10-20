@@ -9,7 +9,7 @@ charge=(p/'ChargeCompareCard.kt').read_text()
 help=(p/'SectionHelp.kt').read_text()
 checks={
  'Exactly four tabs including Sessions': 'listOf("Início","Sessões","Labs","Config.")' in root and 'listOf("Início","Uso"' not in root,
- 'No Use tab or usage screen in navigation': '1 -> AppUsageScreen(' not in root and 'UsageTabIcon()' not in root and '1 -> History(sessions,settings,reading,vm,Modifier.padding(padding)' in root,
+ 'No Use tab or usage screen in navigation': '1 -> AppUsageScreen(' not in root and 'UsageTabIcon()' not in root and 'History(sessions,settings,reading,vm,Modifier.weight(1f)' in root,
  'Sessions is a real tab': '1 -> "Sessões"' in root and '1 -> Icon(Icons.Default.DateRange,label)' in root,
  'Home shortcut switches to Sessions tab': 'onSessions={tab=1}' in root and 'onSessions={detailPage="sessions"}' not in root,
  'History features intact': 'onCompare={detailPage="compare"}' in root and 'onReports={detailPage="reports"}' in root,

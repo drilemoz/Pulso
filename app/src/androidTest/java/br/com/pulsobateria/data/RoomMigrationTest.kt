@@ -20,6 +20,7 @@ class RoomMigrationTest {
  @Test fun migracaoDaVersao5PreservaFonte() = checkMigration(5)
  @Test fun migracaoDaVersao6PreservaTesteSolar() = checkMigration(6)
  @Test fun migracaoDaVersao7PreservaTesteDeConsumo() = checkMigration(7)
+ @Test fun migracaoDaVersao8PreservaResumoSemInventarPico() = checkMigration(8)
 
  private fun checkMigration(from: Int) = runBlocking {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
@@ -86,10 +87,20 @@ class RoomMigrationTest {
     legacy.execSQL("ALTER TABLE `lab_tests` ADD COLUMN `lastPlugged` INTEGER")
     legacy.execSQL("UPDATE lab_tests SET kind='DISCHARGE',sky='',skyChanges='',panelWatts=NULL")
    }
+   if(from>=8) {
+    listOf("initialTemperatureC REAL", "finalTemperatureC REAL", "maxTemperatureC REAL",
+     "screenCondition TEXT NOT NULL DEFAULT 'NAO_INFORMADA'", "cameraReported INTEGER NOT NULL DEFAULT 0",
+     "wifiReported INTEGER NOT NULL DEFAULT 0", "recordingReported INTEGER NOT NULL DEFAULT 0",
+     "notes TEXT NOT NULL DEFAULT ''").forEach { declaration ->
+      val column = declaration.substringBefore(' ')
+      val sqlType = declaration.substringAfter(' ')
+      legacy.execSQL("ALTER TABLE `lab_tests` ADD COLUMN `$column` $sqlType")
+     }
+   }
    legacy.version=from
   } finally { legacy.close() }
   val db=Room.databaseBuilder(context,BatteryDatabase::class.java,name)
-   .addMigrations(BatteryDatabase.MIGRATION_1_2,BatteryDatabase.MIGRATION_2_3,BatteryDatabase.MIGRATION_3_4,BatteryDatabase.MIGRATION_4_5,BatteryDatabase.MIGRATION_5_6,BatteryDatabase.MIGRATION_6_7,BatteryDatabase.MIGRATION_7_8).build()
+   .addMigrations(BatteryDatabase.MIGRATION_1_2,BatteryDatabase.MIGRATION_2_3,BatteryDatabase.MIGRATION_3_4,BatteryDatabase.MIGRATION_4_5,BatteryDatabase.MIGRATION_5_6,BatteryDatabase.MIGRATION_6_7,BatteryDatabase.MIGRATION_7_8,BatteryDatabase.MIGRATION_8_9).build()
   try {
    assertTrue(db.sessions().exportTelemetry().isEmpty())
    if(from==7) {
@@ -103,6 +114,11 @@ class RoomMigrationTest {
     assertFalse(old.wifiReported)
     assertFalse(old.recordingReported)
     assertEquals("",old.notes)
+   } else if(from==8) {
+    val old=db.labs().exportAll().single()
+    assertEquals("DISCHARGE",old.kind)
+    assertNull(old.maxTemperatureC)
+    assertEquals("NAO_INFORMADA",old.screenCondition)
    } else if(from==6) {
     val old=db.labs().exportAll().single()
     assertEquals(3L,old.id)
@@ -116,6 +132,7 @@ class RoomMigrationTest {
    assertEquals("Teste",restored.single().reason)
    assertNull(restored.single().chargeSource)
    assertNull(restored.single().chargerLabel)
+   assertNull(restored.single().maxTemperatureC) // legado sem pico comprovado
    val points=db.sessions().observeSamples(1).first()
    assertEquals(if(from>=2) 1 else 0,points.size)
    if(from>=3) {
@@ -128,6 +145,25 @@ class RoomMigrationTest {
    context.deleteDatabase(name)
   }
  }
+ @Test fun maximaTermicaPersistenteEmCargaEDescargaSemAmostraBruta() = runBlocking {
+  val context=InstrumentationRegistry.getInstrumentation().targetContext
+  val db=Room.inMemoryDatabaseBuilder(context,BatteryDatabase::class.java).build()
+  try {
+   for(mode in listOf("CHARGING","DISCHARGING")) {
+    val dao=db.sessions()
+    val first=dao.saveObservation(Session(mode=mode,started=1000,ended=1000,durationMs=0,
+     initial=60,final=60,temperatureSum=32.0,temperatureCount=1,maxTemperatureC=32.0,samples=1),null)
+    val peak=dao.saveObservation(first.copy(ended=2000,durationMs=1000,temperatureSum=73.8,
+     temperatureCount=2,maxTemperatureC=41.8,samples=2),null)
+    dao.saveObservation(peak.copy(ended=3000,durationMs=2000,temperatureSum=110.8,
+     temperatureCount=3,maxTemperatureC=41.8,samples=3,closed=true),null)
+    val saved=dao.exportSessions().single { it.id == first.id }
+    assertEquals(41.8,saved.maxTemperatureC!!,0.001)
+    assertTrue(dao.observeSamples(first.id).first().isEmpty())
+   }
+  } finally { db.close() }
+ }
+
  @Test fun falhaNaAmostraReverteResumoNaMesmaTransacao() = runBlocking {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
   val db=Room.inMemoryDatabaseBuilder(context,BatteryDatabase::class.java).build()

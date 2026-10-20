@@ -198,7 +198,9 @@ class BatteryRepository(
    val candidate=previous.copy(ended=wall,chargeSource=previous.chargeSource ?: chargeSource,
     durationMs=BatteryMath.observedDuration(previous.durationMs,lastElapsed,now,paused,previous.samples),final=level,
     temperatureSum=previous.temperatureSum+(temperature ?: 0.0),
-    temperatureCount=previous.temperatureCount+(if(temperature!=null) 1 else 0),samples=previous.samples+1,reason="Em observação")
+    temperatureCount=previous.temperatureCount+(if(temperature!=null) 1 else 0),
+    maxTemperatureC=SessionThermalPeak.update(previous.maxTemperatureC,temperature),
+    samples=previous.samples+1,reason="Em observação")
    val shouldStore=BatteryMath.shouldStoreSessionSample(lastStoredTimestamp,lastStoredPercent,wall,level)
    val sample=if(shouldStore) SessionSample(sessionId=previous.id,timestamp=wall,percent=level,
     currentMa=currentInfo.ma,temperatureC=temperature,currentSource=currentInfo.source.name) else null

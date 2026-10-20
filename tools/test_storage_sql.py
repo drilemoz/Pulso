@@ -44,7 +44,7 @@ class StorageSQLTest(unittest.TestCase):
   with sqlite3.connect(':memory:') as db:
    schema(db,3)
    self.assertEqual(437.0,db.execute('SELECT currentMa FROM session_samples').fetchone()[0])
-   self.assertIn('version = 8',STORE)
+   self.assertIn('version = 9',STORE)
  def test_foreign_key_cascades(self):
   with sqlite3.connect(':memory:') as db:
    schema(db,3); db.execute('DELETE FROM sessions WHERE id=1')
@@ -128,6 +128,18 @@ class StorageSQLTest(unittest.TestCase):
    self.assertEqual((9,'DISCHARGE',1500,None,None,None,'NAO_INFORMADA',0,0,0,''),old)
    db.execute("UPDATE lab_tests SET initialTemperatureC=31.2, finalTemperatureC=33.0, maxTemperatureC=34.0,screenCondition='ACESA',cameraReported=1,wifiReported=1,notes='Minha Câmera' WHERE id=9")
    self.assertEqual((31.2,33.0,34.0,'ACESA',1,1,'Minha Câmera'),db.execute('SELECT initialTemperatureC,finalTemperatureC,maxTemperatureC,screenCondition,cameraReported,wifiReported,notes FROM lab_tests').fetchone())
+
+ def test_v8_to_v9_starts_unknown_and_tracks_peak_persistently(self):
+  with sqlite3.connect(':memory:') as db:
+   schema(db,3)
+   for version in range(3,8): migration(db,version)
+   migration(db,8)
+   self.assertIsNone(db.execute('SELECT maxTemperatureC FROM sessions WHERE id=1').fetchone()[0])
+   db.execute('UPDATE sessions SET maxTemperatureC=41.2 WHERE id=1')
+   db.execute('DELETE FROM session_samples')
+   db.execute('DELETE FROM telemetry_samples')
+   self.assertEqual(41.2, db.execute('SELECT maxTemperatureC FROM sessions').fetchone()[0])
+   self.assertEqual([],db.execute('PRAGMA foreign_key_check').fetchall())
 
  def test_telemetry_retention_and_cascade(self):
   with sqlite3.connect(':memory:') as db:

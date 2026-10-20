@@ -24,6 +24,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
@@ -39,12 +40,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalView
 import android.app.Activity
+import android.graphics.Bitmap
+import android.graphics.Canvas as AndroidCanvas
+import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import br.com.pulsobateria.BuildConfig
 import androidx.core.view.WindowCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
 import br.com.pulsobateria.core.*
 import br.com.pulsobateria.data.*
 import br.com.pulsobateria.monitor.Reading
@@ -76,6 +83,8 @@ fun PulsoScreen(onMonitor: (Boolean) -> Unit, openLabs: Boolean = false, vm: Pul
  val error by vm.error.collectAsStateWithLifecycle()
  val dark = settings.theme == "dark" || (settings.theme == "system" && isSystemInDarkTheme())
  val view = LocalView.current
+ val screenshotScope = rememberCoroutineScope()
+ var screenshotBusy by remember { mutableStateOf(false) }
  SideEffect {
   (view.context as? Activity)?.window?.let { window ->
    WindowCompat.getInsetsController(window,view).apply {
@@ -106,6 +115,38 @@ fun PulsoScreen(onMonitor: (Boolean) -> Unit, openLabs: Boolean = false, vm: Pul
  val exportLauncher=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri ->
   if(uri!=null) vm.exportBackup(uri)
  }
+ val screenshotLauncher=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("image/png")) { uri ->
+  if(uri!=null && !screenshotBusy) {
+   screenshotBusy = true
+   // A View deve ser desenhada na thread principal; compressão/IO podem ir para Dispatchers.IO.
+   val snapshot=runCatching {
+    val root=view.rootView
+    check(root.width>0 && root.height>0) { "Tela ainda não está pronta para captura" }
+    Bitmap.createBitmap(root.width,root.height,Bitmap.Config.ARGB_8888).also {
+     try { root.draw(AndroidCanvas(it)) } catch (error: Throwable) { it.recycle(); throw error }
+    }
+   }
+   snapshot.onFailure { screenshotBusy=false; Toast.makeText(context,"Falha na captura: ${it.message}",Toast.LENGTH_LONG).show() }
+   snapshot.onSuccess { bitmap ->
+    screenshotScope.launch {
+     try {
+      withContext(Dispatchers.IO) {
+       context.contentResolver.openOutputStream(uri,"wt")?.use { stream ->
+        check(bitmap.compress(Bitmap.CompressFormat.PNG,100,stream)) { "Falha ao gravar PNG" }
+        stream.flush()
+       } ?: error("Destino indisponível")
+      }
+      Toast.makeText(context,"Captura salva",Toast.LENGTH_SHORT).show()
+     } catch(error: Exception) {
+      Toast.makeText(context,"Falha na captura: ${error.message}",Toast.LENGTH_LONG).show()
+     } finally { bitmap.recycle(); screenshotBusy=false }
+    }
+   }
+  }
+ }
+ val reportsLauncher=rememberLauncherForActivityResult(ActivityResultContracts.CreateDocument("text/csv")) { uri ->
+  if(uri!=null) vm.exportSessionReports(uri)
+ }
  val importLauncher=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
   if(uri!=null) vm.inspectBackup(uri)
  }
@@ -117,7 +158,7 @@ fun PulsoScreen(onMonitor: (Boolean) -> Unit, openLabs: Boolean = false, vm: Pul
    TopAppBar(navigationIcon={ if(detailPage.isNotEmpty()) IconButton(onClick={detailPage=""}) { Icon(Icons.Default.ArrowBack,"Voltar") } },title={ Column {
     Text(when(detailPage) { "analysis" -> "Análise de medições"; "compare" -> "Comparar recargas"; "reports" -> "Relatórios"; else -> when(tab) { 0 -> "Pulso Bateria"; 1 -> "Sessões"; 2 -> "Labs"; else -> "Configurações" } },fontWeight=FontWeight.Bold)
     Text(if(tab==0) "ENERGIA EM TEMPO REAL" else "PULSO • ALPHA",style=MaterialTheme.typography.labelSmall,color=colors.primary,letterSpacing=2.sp)
-   } }, actions={ IconButton(onClick={showReleaseNews=true}) { Icon(Icons.Default.Info,"Novidades desta versão") }; if(tab!=3 && detailPage.isEmpty()) IconButton(onClick={tab=3;detailPage=""}) { Icon(Icons.Default.Settings,"Configurações") } },
+   } }, actions={ IconButton(enabled=!screenshotBusy,onClick={screenshotLauncher.launch("Pulso-Bateria-print-${System.currentTimeMillis()}.png")}) { PrintCameraIcon() }; IconButton(onClick={showReleaseNews=true}) { Icon(Icons.Default.Info,"Novidades desta versão") } },
     colors=TopAppBarDefaults.topAppBarColors(containerColor=colors.background))
   },bottomBar={
    NavigationBar(containerColor=colors.surface) {
@@ -147,7 +188,7 @@ fun PulsoScreen(onMonitor: (Boolean) -> Unit, openLabs: Boolean = false, vm: Pul
      Mode.DISCHARGING -> DischargingScreen(reading,settings,telemetry,dischargeHistory,chargeHistory,Modifier.padding(padding),onDetails={detailPage="analysis"},onSessions={tab=1}) { limitations=true }
      else -> MonitorScreen(reading,settings,telemetry,dischargeHistory,chargeHistory,Modifier.padding(padding),"Visão da bateria",onDetails={detailPage="analysis"},onLimitations={limitations=true},onSessions={tab=1})
     }
-    1 -> History(sessions,settings,reading,vm,Modifier.padding(padding),onCompare={detailPage="compare"},onReports={detailPage="reports"})
+    1 -> Column(Modifier.padding(padding)) { Row(Modifier.fillMaxWidth().padding(horizontal=16.dp),horizontalArrangement=Arrangement.End) { TextButton(enabled=!vm.sessionExportBusy,onClick={reportsLauncher.launch("Pulso-Bateria-sessoes-${System.currentTimeMillis()}.csv")}) { Text("Exportar relatórios") } }; if(vm.sessionExportStatus.isNotBlank()) Text(vm.sessionExportStatus,Modifier.padding(horizontal=16.dp),style=MaterialTheme.typography.labelSmall); History(sessions,settings,reading,vm,Modifier.weight(1f),onCompare={detailPage="compare"},onReports={detailPage="reports"}) }
     2 -> LabsScreen(vm,Modifier.padding(padding),onMonitor)
     else -> SettingsPage(settings,reading,active,error,vm,onMonitor,{limitations=true},
      onExport={exportLauncher.launch("Pulso-Bateria-backup-${System.currentTimeMillis()}.json")},
@@ -159,6 +200,20 @@ fun PulsoScreen(onMonitor: (Boolean) -> Unit, openLabs: Boolean = false, vm: Pul
   if(limitations) AlertDialog(onDismissRequest={limitations=false},confirmButton={TextButton(onClick={limitations=false}){Text("Entendi")}},title={Text("Sobre as medições")},text={
    Text("Os dados vêm do Android e dependem do sensor e do fabricante. Corrente positiva indica entrada líquida na bateria; negativa indica saída. O app usa µA e sinal Android. Ajustes da corrente instantânea exigem três janelas estáveis comparadas ao contador; isso não substitui calibração com instrumento. A média Android usa a janela desconhecida do hardware. Estar conectado não garante carga.\n\nA taxa local exige pelo menos 5 minutos e 2% de variação. A duração média com 100% usa só sessões de descarga; a duração equivalente de carga 0 a 100% usa apenas sessões carregando, inclusive parciais, com dados mínimos. Ambas combinam tendência atual e histórico quando disponíveis. Carregadores, fontes USB e energia solar podem apresentar taxas diferentes; perto de 100% a carga pode desacelerar. São estimativas, não garantias. A previsão do sistema só é aceita durante a carga quando compatível com a tendência medida.\n\nSem monitoramento contínuo, só registramos com o app visível. Pausas de até 90 segundos podem retomar a mesma sessão se estado e porcentagem permanecerem iguais; o tempo parado não entra na duração. Lacunas de coleta acima de 3 minutos criam outra sessão. O Android pode suspender o serviço. Não há coleta durante desligamento nem recuperação de intervalos perdidos. Temperatura é da bateria, não da CPU. Na tela inicial, as cores da temperatura seguem faixas relativas ao limite térmico configurado em Ajustes. Corrente não é potência nem capacidade em mAh.")
   })
+ }
+}
+
+/** Câmera vetorial compacta, sem o pacote de milhares de ícones extras. */
+@Composable
+private fun PrintCameraIcon() {
+ val tint=LocalContentColor.current
+ val lensBackground=MaterialTheme.colorScheme.surface
+ Canvas(Modifier.size(24.dp).semantics { contentDescription="Salvar captura da tela" }) {
+  val w=size.width; val h=size.height
+  drawRoundRect(tint,topLeft=Offset(w*.07f,h*.25f),size=Size(w*.86f,h*.62f),cornerRadius=CornerRadius(w*.09f))
+  drawCircle(color=lensBackground,radius=w*.17f,center=Offset(w*.5f,h*.56f))
+  drawCircle(color=tint,radius=w*.11f,center=Offset(w*.5f,h*.56f))
+  drawRect(tint,topLeft=Offset(w*.25f,h*.13f),size=Size(w*.26f,h*.16f))
  }
 }
 
@@ -889,6 +944,9 @@ private fun SessionHistoryCard(session: Session,settings: Settings,vm: PulsoView
      }
     }
    }
+   session.maxTemperatureC?.let { peak ->
+    Text("Pico térmico registrado: ${temperatureText(peak,settings.fahrenheit)}",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+   }
    if(possibleGapMs != null) {
     Text("Possível retomada • ${durationText(possibleGapMs)} sem observar",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
    }
@@ -915,6 +973,15 @@ private fun SessionHistoryCard(session: Session,settings: Settings,vm: PulsoView
     Text("Evolução da bateria",style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.SemiBold,modifier=Modifier.padding(top=4.dp))
     val sampleFlow = remember(session.id) { vm.sessionSamples(session.id) }
     val savedSamples by sampleFlow.collectAsStateWithLifecycle(initialValue=emptyList())
+    val telemetryFlow=remember(session.id) { vm.sessionTelemetry(session.id) }
+    val observedTelemetry by telemetryFlow.collectAsStateWithLifecycle(initialValue=emptyList())
+    val retainedPeak=(savedSamples.mapNotNull { it.temperatureC } + observedTelemetry.mapNotNull { it.temperatureC })
+     .filter { it.isFinite() && it in -40.0..100.0 }.maxOrNull()
+    val maxObservedTemperature=session.maxTemperatureC ?: retainedPeak
+    SessionDetailRow("Temperatura máxima registrada",temperatureText(maxObservedTemperature,settings.fahrenheit))
+    Text(if(session.maxTemperatureC!=null) "Pico de todas as leituras recebidas desde a alpha.60; não inclui períodos sem monitoramento ou medições anteriores à atualização."
+     else "Máxima das amostras ainda armazenadas. Histórico anterior à alpha.60 e lacunas podem ter perdido picos.",
+     style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
     SessionHistoryChart(savedSamples,accent)
     savedSamples.lastOrNull { it.currentMa != null }?.let { measured ->
      SessionDetailRow("Última corrente salva",currentText(measured.currentMa))

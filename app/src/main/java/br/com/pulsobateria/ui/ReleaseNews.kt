@@ -12,12 +12,14 @@ import br.com.pulsobateria.BuildConfig
 
 /** Alterações exclusivas do build atual. Atualizar obrigatoriamente em cada release. */
 internal object ReleaseNews {
- const val VERSION_NAME = "0.1.0-alpha.57"
- const val VERSION_CODE = 57
+ const val VERSION_NAME = "0.1.0-alpha.61"
+ const val VERSION_CODE = 61
  val ITEMS = listOf(
-  "Novidades rejeita itens copiados de versões anteriores para evitar anúncios repetidos.",
-  "A validação exige alterações exclusivas do build atual, registradas no CHANGELOG.",
-  "Testes de regressão verificam a rejeição de novidades reaproveitadas de releases antigos."
+  "Corrigido o teste instrumentado de migração 8→9: agora cria corretamente as colunas legadas do Labs.",
+  "Adicionado teste Android para comprovar o pico térmico persistido em sessões de carga e descarga sem amostras brutas.",
+  "Captura PNG e exportação de sessões impedem operações concorrentes e desativam seus botões durante o processamento.",
+  "Relatório CSV agora inclui também datas e horários locais legíveis, além dos timestamps originais.",
+
  )
 }
 

@@ -1,6 +1,6 @@
 # Versionamento
 
-Versão atual: **0.1.0-alpha.57**, **versionCode 57**.
+Versão atual: **0.1.0-alpha.61**, **versionCode 61**.
 
 Cada alteração no projeto deve aumentar sequencialmente o `versionCode` e o `versionName`, além de sincronizar README, CHANGELOG, RELEASE_NOTES e documentação de validação.
 
@@ -31,3 +31,11 @@ Alpha.53: coleta de estado Labs atrelada ao ciclo de vida; relógio apenas visua
 Alpha.55: Novidades com testes de falha obrigatória para versões divergentes e itens inválidos. Próxima alpha.57.
 
 Alpha.57: Novidades exclusivas do build, sem reutilização literal de itens antigos do CHANGELOG; teste de regressão do bloqueio. Próxima alpha.58 / 58.
+
+Alpha.58: RELEASE_NOTES sincronizado com Novidades e CHANGELOG; CI bloqueia divergências. Avaliar entrada na fase beta antes de novas versões.
+
+Alpha.59: máximo de temperatura observada, captura de tela e exportação CSV das sessões.
+
+Alpha.60: pico térmico persistido em Room v9; backup v7 com compatibilidade v1..7. Próxima alpha.61 / 61.
+
+Alpha.61: teste Room 8→9 e pico térmico das duas modalidades, captura/CSV sem concorrência, horários locais no CSV; Room v9 e backup v7 mantidos. Próxima alpha.62 / 62.

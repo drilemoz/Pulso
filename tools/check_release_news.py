@@ -6,6 +6,7 @@ root = Path(__file__).resolve().parents[1]
 gradle = (root/'app/build.gradle.kts').read_text()
 news = (root/'app/src/main/java/br/com/pulsobateria/ui/ReleaseNews.kt').read_text()
 changelog = (root/'CHANGELOG.md').read_text()
+release_notes = (root/'RELEASE_NOTES.md').read_text()
 name = re.search(r'versionName\s*=\s*"([^"]+)"',gradle)
 code = re.search(r'versionCode\s*=\s*(\d+)',gradle)
 news_name = re.search(r'const val VERSION_NAME\s*=\s*"([^"]+)"',news)
@@ -25,6 +26,11 @@ current_section = changelog.splitlines()[1:]
 current_section = '\n'.join(current_section).split('\n## ', 1)[0]
 current_bullets = {line.removeprefix('- ').strip().casefold() for line in current_section.splitlines() if line.startswith('- ')}
 assert all(entry.strip().casefold() in current_bullets for entry in entries), 'Cada novidade deve constar no CHANGELOG da versão atual'
+notes_headings = re.findall(r'^## (\S+)', release_notes, re.M)
+assert notes_headings and notes_headings[0] == name.group(1), 'RELEASE_NOTES deve começar pela versão atual'
+notes_current = '\n'.join(release_notes.splitlines()[1:]).split('\n## ', 1)[0]
+notes_bullets = {line.removeprefix('- ').strip().casefold() for line in notes_current.splitlines() if line.startswith('- ')}
+assert all(entry.strip().casefold() in notes_bullets for entry in entries), 'Cada novidade deve constar nas notas de release atuais'
 previous_sections = changelog.split('\n## ', 1)[1] if '\n## ' in changelog else ''
 previous_bullets = {line.removeprefix('- ').strip().casefold() for line in previous_sections.splitlines() if line.startswith('- ')}
 assert not any(entry.strip().casefold() in previous_bullets for entry in entries), 'Novidades não podem repetir itens de builds anteriores'

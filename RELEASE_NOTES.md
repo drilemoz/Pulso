@@ -1,3 +1,31 @@
+## 0.1.0-alpha.61
+
+- Corrigido o teste instrumentado de migração 8→9: agora cria corretamente as colunas legadas do Labs.
+- Adicionado teste Android para comprovar o pico térmico persistido em sessões de carga e descarga sem amostras brutas.
+- Captura PNG e exportação de sessões impedem operações concorrentes e desativam seus botões durante o processamento.
+- Relatório CSV agora inclui também datas e horários locais legíveis, além dos timestamps originais.
+
+## 0.1.0-alpha.60
+
+- Temperatura máxima agora é registrada a cada leitura válida nas sessões, mesmo após descartar amostras antigas.
+- Exportação CSV identifica se o pico veio do registro contínuo ou somente das amostras históricas retidas.
+- Capturas PNG liberam a memória mesmo em caso de erro; exportação e ícone de câmera foram revisados.
+- Migração Room 8→9 preserva os dados anteriores e o backup JSON v7 mantém os novos picos sem inventar valores antigos.
+- Corrigida a inicialização compartilhada do banco usada pela exportação; pico térmico aparece também no cartão da sessão.
+
+## 0.1.0-alpha.59
+
+- Sessões exibem a temperatura máxima observada nas amostras disponíveis de carga e descarga.
+- Um botão de câmera no topo de todas as telas permite salvar uma captura PNG.
+- A aba Sessões permite exportar relatórios CSV com temperaturas e dados registrados.
+- Room v8, backup JSON v6 e AIDL v1 preservados; máximo limitado às amostras retidas.
+
+## 0.1.0-alpha.58
+
+- A tela Novidades passa a exigir correspondência também com as notas de release da versão atual.
+- O build rejeita notas de release desatualizadas ou sem as novidades anunciadas.
+- Testes de regressão cobrem a ausência de itens e versões divergentes nas notas de release.
+
 ## Alpha.54
 
 - Tela Novidades exclusiva do build, abertura automática por versão e verificação obrigatória em preBuild e CI.

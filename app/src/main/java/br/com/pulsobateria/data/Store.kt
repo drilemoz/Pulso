@@ -174,10 +174,13 @@ data class Session(
  val mode: String, val started: Long, val ended: Long,
  val durationMs: Long, val initial: Int, val final: Int,
  val temperatureSum: Double, val temperatureCount: Int,
+ val maxTemperatureC: Double? = null,
  val samples: Int, val closed: Boolean = false,
  val reason: String = "Em observação",
  val chargeSource: String? = null, val chargerLabel: String? = null
 )
+data class SessionTemperaturePeak(val sessionId: Long, val peak: Double?)
+
 @Entity(
  tableName = "session_samples",
  foreignKeys = [ForeignKey(entity = Session::class, parentColumns = ["id"], childColumns = ["sessionId"], onDelete = ForeignKey.CASCADE)],
@@ -255,6 +258,12 @@ interface SessionDao {
  @Query("UPDATE sessions SET chargerLabel = :label WHERE id = :id AND mode = 'CHARGING'")
  suspend fun setChargerLabel(id: Long, label: String?): Int
  @Query("SELECT * FROM telemetry_samples ORDER BY sessionId ASC, id ASC") suspend fun exportTelemetry(): List<TelemetrySample>
+ @Query("""SELECT sessionId, MAX(temperatureC) AS peak FROM (
+  SELECT sessionId,temperatureC FROM session_samples WHERE temperatureC BETWEEN -40 AND 100
+  UNION ALL
+  SELECT sessionId,temperatureC FROM telemetry_samples WHERE temperatureC BETWEEN -40 AND 100
+ ) GROUP BY sessionId""")
+ suspend fun exportRetainedTemperaturePeaks(): List<SessionTemperaturePeak>
  @Query("DELETE FROM telemetry_samples") suspend fun clearTelemetry()
  @Insert suspend fun insertTelemetry(items: List<TelemetrySample>)
  @Insert suspend fun insertTelemetry(item: TelemetrySample)
@@ -296,11 +305,17 @@ interface SessionDao {
  @Update suspend fun update(session: Session)
  @Query("DELETE FROM sessions WHERE id NOT IN (SELECT id FROM sessions ORDER BY id DESC LIMIT 500)") suspend fun trim()
 }
-@Database(entities = [Session::class, SessionSample::class, TelemetrySample::class, LabTest::class], version = 8, exportSchema = true)
+@Database(entities = [Session::class, SessionSample::class, TelemetrySample::class, LabTest::class], version = 9, exportSchema = true)
 abstract class BatteryDatabase: RoomDatabase() {
  abstract fun sessions(): SessionDao
  abstract fun labs(): LabDao
  companion object {
+  val MIGRATION_8_9 = object : Migration(8, 9) {
+   override fun migrate(db: SupportSQLiteDatabase) {
+    // Legado desconhecido: NULL, pois amostras antigas podem ter sido descartadas.
+    db.execSQL("ALTER TABLE `sessions` ADD COLUMN `maxTemperatureC` REAL")
+   }
+  }
   val MIGRATION_7_8 = object : Migration(7, 8) {
    override fun migrate(db: SupportSQLiteDatabase) {
     db.execSQL("ALTER TABLE `lab_tests` ADD COLUMN `initialTemperatureC` REAL")

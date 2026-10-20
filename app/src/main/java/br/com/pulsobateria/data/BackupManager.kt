@@ -29,7 +29,7 @@ class BackupManager(
 ) {
  companion object {
   const val FORMAT = "br.com.pulsobateria.backup"
-  const val VERSION = 6
+  const val VERSION = 7
   const val MAX_BYTES = 64 * 1024 * 1024
   private fun digest(value: ByteArray): String = MessageDigest.getInstance("SHA-256")
    .digest(value).joinToString("") { "%02x".format(it) }
@@ -58,6 +58,7 @@ class BackupManager(
     put("id",s.id); put("mode",s.mode); put("started",s.started); put("ended",s.ended)
     put("durationMs",s.durationMs); put("initial",s.initial); put("final",s.final)
     put("temperatureSum",s.temperatureSum); put("temperatureCount",s.temperatureCount)
+    put("maxTemperatureC",s.maxTemperatureC ?: JSONObject.NULL)
     put("samples",s.samples); put("closed",s.closed); put("reason",s.reason)
     put("chargeSource",s.chargeSource ?: JSONObject.NULL)
     put("chargerLabel",s.chargerLabel ?: JSONObject.NULL)
@@ -140,6 +141,7 @@ class BackupManager(
    Session(id=s.getLong("id"),mode=s.getString("mode"),started=s.getLong("started"),ended=s.getLong("ended"),
     durationMs=s.getLong("durationMs"), initial=s.getInt("initial"),final=s.getInt("final"),
     temperatureSum=s.getDouble("temperatureSum"),temperatureCount=s.getInt("temperatureCount"),
+    maxTemperatureC=if(backupVersion>=7 && !s.isNull("maxTemperatureC")) s.getDouble("maxTemperatureC") else null,
     samples=s.getInt("samples"),closed=s.getBoolean("closed"),reason=s.getString("reason"),
     chargeSource=if(!s.has("chargeSource") || s.isNull("chargeSource")) null else s.getString("chargeSource"),
     chargerLabel=if(!s.has("chargerLabel") || s.isNull("chargerLabel")) null else s.getString("chargerLabel"))
@@ -148,7 +150,9 @@ class BackupManager(
    it.id>0 && it.mode in setOf("CHARGING","DISCHARGING","FULL","IDLE","UNKNOWN") &&
    HistoryValidation.validSession(it.started,it.ended,it.durationMs,it.samples,it.temperatureCount,it.temperatureSum) &&
    it.initial in 0..100 && it.final in 0..100 && it.samples>=0 && it.temperatureCount>=0 &&
-   it.temperatureSum.isFinite() && it.reason.length<=256 &&
+   it.temperatureSum.isFinite() &&
+   (it.maxTemperatureC==null || it.maxTemperatureC.isFinite() && it.maxTemperatureC in -40.0..100.0) &&
+   it.reason.length<=256 &&
    (it.chargeSource==null || (it.mode=="CHARGING" && it.chargeSource in setOf("Tomada","USB","Sem fio","Fonte externa"))) &&
    (it.chargerLabel==null || (it.mode=="CHARGING" && it.chargerLabel.length in 1..40 && it.chargerLabel.none { c -> Character.isISOControl(c) }))
   }) { "Sessão inválida ou ID repetido." }

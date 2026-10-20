@@ -12,15 +12,14 @@ import br.com.pulsobateria.BuildConfig
 
 /** Alterações exclusivas do build atual. Atualizar obrigatoriamente em cada release. */
 internal object ReleaseNews {
- const val VERSION_NAME = "0.1.0-alpha.64"
- const val VERSION_CODE = 64
+ const val VERSION_NAME = "0.1.0-alpha.65"
+ const val VERSION_CODE = 65
  val ITEMS = listOf(
-  "Corrigida colisão entre o comando JSON e o método de envio, que impediria compilar a inicialização solar remota.",
-  "Corrigido o teste de Novidades para reconhecer a versão anterior sem depender de uma data fixa no CHANGELOG.",
-  "O contrato de integração AIDL permanece protegido enquanto a verificação diferencia a comunicação LAN autorizada.",
-  "Pareamento remoto agora aceita somente IPv4 privado e o servidor escuta apenas na interface Wi-Fi selecionada.",
-  "Conexões LAN têm prazo máximo de tentativa e leituras remotas antigas não são apresentadas como atuais.",
-  "A tela remota identifica medições reais, bloqueia comandos quando desconectada e solicita monitoramento no celular A.",
+  "Labs recebe o Teste de Carregamento Elétrico com duração manual ou programada e verificação da fonte conectada informada pelo Android.",
+  "O carregamento elétrico registra bateria inicial e final, tempo efetivo carregando, corrente líquida média e lacunas observacionais.",
+  "Temperaturas inicial, média aritmética de leituras válidas, final e máxima ficam no relatório e histórico do Labs.",
+  "Room v10 migra a tabela Labs preservando resultados anteriores sem inventar médias térmicas retroativas.",
+  "Backup JSON v8 preserva a média térmica e a origem elétrica, mantendo leitura de backups antigos.",
 
  )
 }

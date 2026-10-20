@@ -9,8 +9,8 @@ repo=(root/'app/src/main/java/br/com/pulsobateria/monitor/BatteryRepository.kt')
 backup=(root/'app/src/main/java/br/com/pulsobateria/data/BackupManager.kt').read_text()
 assert 'maxTemperatureC: Double? = null' in store
 assert 'SessionThermalPeak.update(previous.maxTemperatureC,temperature)' in repo
-assert 'MIGRATION_8_9' in store and 'version = 9' in store
-assert 'maxTemperatureC' in backup and 'const val VERSION = 7' in backup
+assert 'MIGRATION_8_9' in store and 'version = 10' in store
+assert 'maxTemperatureC' in backup and 'const val VERSION = 8' in backup
 assert 's.maxTemperatureC ?: retainedPeaks[s.id]' in vm and 'origem_pico' in vm
 assert 'suspend fun exportRetainedTemperaturePeaks()' in store
 application=(root/'app/src/main/java/br/com/pulsobateria/PulsoApp.kt').read_text()

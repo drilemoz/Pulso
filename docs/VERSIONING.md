@@ -1,6 +1,6 @@
 # Versionamento
 
-Versão atual: **0.1.0-alpha.64**, **versionCode 64**.
+Versão atual: **0.1.0-alpha.65**, **versionCode 65**.
 
 Cada alteração no projeto deve aumentar sequencialmente o `versionCode` e o `versionName`, além de sincronizar README, CHANGELOG, RELEASE_NOTES e documentação de validação.
 
@@ -43,3 +43,5 @@ Alpha.61: teste Room 8→9 e pico térmico das duas modalidades, captura/CSV sem
 Alpha.62: auditoria de totais Home/Sessões, exclusão da sessão aberta das médias históricas, correção do tempo em troca de modo, totalizador observacional para grupos e contagem de fonte usada. Próxima alpha.64 / 64.
 
 Alpha.64: correção dos testes de Novidades e AIDL/LAN; pareamento privado, limites de conexão e leituras remotas recentes. Próxima alpha.65 / 65.
+
+Alpha.65: teste de carregamento elétrico no Labs; média térmica persistida de leituras válidas. Room v10 com migração 9→10; backup JSON v8 compatível com versões anteriores. Próxima alpha.66 / 66.

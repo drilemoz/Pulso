@@ -165,3 +165,7 @@ As diferenças de percentual são **pontos percentuais** da indicação do Andro
 não mAh nem carga elétrica acumulada. Nenhum teste de software confirma a exatidão
 metrológica de sensores OEM; isso exige testes no aparelho, com fonte e medidor
 externo se a intenção for aferir corrente absoluta.
+
+## Labs: carregamento elétrico (alpha.65)
+
+O teste de carregamento elétrico exige leitura recente do Android indicando fonte conectada e estado CHARGING ou FULL, além do serviço de monitoramento ativo. Distingue Tomada, USB e Sem fio conforme EXTRA_PLUGGED, sem inferir se USB vem de tomada, painel ou power bank. O usuário deve informar a origem elétrica real. A média de temperatura é **aritmética** dos valores de bateria válidos observados, incluída a leitura inicial e eventuais leituras posteriores distintas. Leituras nulas, inválidas, repetidas com o mesmo timestamp e intervalos sem coleta não entram na média. Não confundir com média térmica temporal. A primeira e a última temperatura reportadas podem não coincidir exatamente com o início e fim se o Android atrasar observações. Temperatura máxima é maior valor efetivamente recebido. A corrente média é líquida na bateria, não corrente de entrada do carregador. Os outros testes também exibem a média de temperatura com a mesma regra a partir da alpha.65; registros históricos antigos ficam sem média calculada quando não existem amostras preservadas suficientes.

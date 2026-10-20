@@ -22,7 +22,7 @@ class PulsoApp: Application() {
  override fun onCreate() {
   super.onCreate()
   settings = SettingsStore(this)
-  database = Room.databaseBuilder(this, BatteryDatabase::class.java, "pulso.db").addMigrations(BatteryDatabase.MIGRATION_1_2, BatteryDatabase.MIGRATION_2_3, BatteryDatabase.MIGRATION_3_4, BatteryDatabase.MIGRATION_4_5, BatteryDatabase.MIGRATION_5_6, BatteryDatabase.MIGRATION_6_7, BatteryDatabase.MIGRATION_7_8, BatteryDatabase.MIGRATION_8_9).build()
+  database = Room.databaseBuilder(this, BatteryDatabase::class.java, "pulso.db").addMigrations(BatteryDatabase.MIGRATION_1_2, BatteryDatabase.MIGRATION_2_3, BatteryDatabase.MIGRATION_3_4, BatteryDatabase.MIGRATION_4_5, BatteryDatabase.MIGRATION_5_6, BatteryDatabase.MIGRATION_6_7, BatteryDatabase.MIGRATION_7_8, BatteryDatabase.MIGRATION_8_9, BatteryDatabase.MIGRATION_9_10).build()
   backup = BackupManager(this, database, settings)
   repository = BatteryRepository(this, database.sessions(), settings, scope)
   usageInsights = UsageInsightsReader(this, database.sessions())

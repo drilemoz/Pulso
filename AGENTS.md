@@ -2,7 +2,7 @@
 
 - Android Kotlin/Compose, offline, sem anúncios/rastreamento; INTERNET exclusivamente para LAN local opcional em Labs. Não inventar medições ou capacidades do aparelho.
 - Antes de editar, ler README, docs/MEASUREMENTS.md e docs/VERSIONING.md.
-- Versão atual 0.1.0-alpha.64 / versionCode 64. Próxima 0.1.0-alpha.65 / 65. Incrementar sequencialmente cada entrega e sincronizar todos os documentos, Gradle, workflow e nome do ZIP.
+- Versão atual 0.1.0-alpha.65 / versionCode 65. Próxima 0.1.0-alpha.66 / 66. Incrementar sequencialmente cada entrega e sincronizar todos os documentos, Gradle, workflow e nome do ZIP.
 - Preservar applicationId. Keystore privada e Secrets nunca entram no ZIP de código ou repositório. Para Debug atualizável, requer Secrets estáveis; sem Secrets a chave temporária deve receber aviso.
 - Manter cálculos no módulo core, testáveis sem Android; validar nulos, sentinelas, sinal, relógio e lacunas.
 - Não iniciar foreground service fora de ação permitida; manter tipo specialUse e sua justificativa, sem simular dataSync/health. Não adicionar wake locks, permissões privilegiadas ou mecanismos de evasão.
@@ -85,3 +85,5 @@ Alpha.57: Novidades exclusivas do build, sem reutilização literal de itens ant
 - Alpha.61: testes instrumentados do Room corrigidos (nomes de coluna na preparação da v8), cobertura do pico em carga/descarga, captura e exportação sem concorrência e CSV com datas locais. Room v9/JSON v7 sem alterações; próxima alpha.63 / 62.
 
 - Alpha.62: Home/Sessões usam apenas sessões finalizadas para médias históricas; transição de estado não incorpora tempo do modo anterior; somas de agrupamentos observacionais validadas no core e teste; fonte de recarga apresenta contagem da janela usada. Não alterar Room v9, backup JSON v7 e AIDL v1. Próxima alpha.64 / 64.
+
+- Alpha.65: teste elétrico do Labs com média aritmética apenas das temperaturas observadas, Room v10 (9→10) e backup JSON v8. Entrada exige carregador identificado pelo Android; categoria USB não comprova energia da tomada. Novidades sincronizadas com o build.

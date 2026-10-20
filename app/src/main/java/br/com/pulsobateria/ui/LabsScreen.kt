@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import br.com.pulsobateria.core.LabMath
+import br.com.pulsobateria.core.LabTemperature
 import br.com.pulsobateria.core.LabReportMath
 import br.com.pulsobateria.core.LabComparisonQuality
 import br.com.pulsobateria.data.LabTest
@@ -67,6 +68,7 @@ private fun dateCompact(time: Long): String = SimpleDateFormat("dd/MM HH:mm",Loc
 fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Boolean) -> Unit) {
  val lifecycleOwner = LocalLifecycleOwner.current
  val active by vm.labCurrent.collectAsStateWithLifecycle()
+ val reading by vm.reading.collectAsStateWithLifecycle()
  val history by vm.labHistory.collectAsStateWithLifecycle()
  val remoteUi by vm.remoteUi.collectAsStateWithLifecycle()
  var page by rememberSaveable { mutableStateOf("home") }
@@ -106,10 +108,12 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
  val selectedMinutes=when(timer) { "manual" -> null; "other" -> customMinutes.toIntOrNull(); else -> timer.toIntOrNull() }
  val validWatts=selectedWatts!=null && selectedWatts in 1..200
  val validDuration=timer=="manual" || selectedMinutes!=null && selectedMinutes in 1..1440
+ val electricReady=reading.plugged==true && reading.mode.name in setOf("CHARGING", "FULL") &&
+  reading.percent!=null && reading.updated in (System.currentTimeMillis()-90_000L)..System.currentTimeMillis()
  // Evita refiltrar todo o histórico a cada tick de atualização do cronômetro.
  val completed=remember(history) { history.filter { it.status != "RUNNING" } }
  val solarCompleted=remember(completed) { completed.filter { it.kind == "SOLAR" } }
- val isConfigPage=active==null && (page=="solar" || page=="discharge")
+ val isConfigPage=active==null && (page=="solar" || page=="discharge" || page=="electric")
  Box(modifier.fillMaxSize()) {
  LazyColumn(Modifier.fillMaxSize(),
   contentPadding=PaddingValues(start=16.dp,top=10.dp,end=16.dp,bottom=if(isConfigPage) 108.dp else 24.dp),
@@ -123,6 +127,7 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
     item { Text("Escolha um experimento para medir a bateria em condições reais.",
      style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant) }
     item { LabMenuCard("☀️","Teste Solar","Carga, períodos sem carga e corrente média.") { page="solar" } }
+    item { LabMenuCard("🔌","Carregamento Elétrico","Recarga pela rede elétrica: bateria, temperatura e corrente.") { page="electric" } }
     item { LabMenuCard("🔋","Teste de Consumo","Queda observada da bateria, sem fonte externa.") { page="discharge" } }
     item { LabMenuCard("📊","Comparar testes solares","Compare dois testes concluídos sem inventar medições.") { page="compare" } }
     item { LabMenuCard("📡","Monitoramento remoto","QR Code, rede local e início remoto do teste solar.") { page="remote" } }
@@ -137,14 +142,16 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
      color=MaterialTheme.colorScheme.onSurfaceVariant) }
     items(completed.take(3), key={it.id}) { test -> LabResult(test,onDelete=vm::deleteLab) }
    }
-   "solar", "discharge" -> {
+   "solar", "discharge", "electric" -> {
     val solar=page=="solar"
+    val electric=page=="electric"
     item {
      Column(verticalArrangement=Arrangement.spacedBy(4.dp)) {
       TextButton(onClick={page="home"},contentPadding=PaddingValues(0.dp)) { Text("‹ Experimentos") }
-      Text(if(solar) "☀️ Teste Solar" else "🔋 Teste de Consumo",style=MaterialTheme.typography.titleLarge,
+      Text(if(solar) "☀️ Teste Solar" else if(electric) "🔌 Carregamento Elétrico" else "🔋 Teste de Consumo",style=MaterialTheme.typography.titleLarge,
        fontWeight=FontWeight.SemiBold)
       Text(if(solar) "Compare a carga recebida em diferentes condições de luz."
+       else if(electric) "Acompanhe o carregamento na tomada, USB ou carregador sem fio."
        else "Meça a descarga com o aparelho desconectado da alimentação.",
        style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
      }
@@ -187,6 +194,17 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
         keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number),modifier=Modifier.fillMaxWidth())
        Text("É a potência anunciada do painel, não a potência medida.",style=MaterialTheme.typography.bodySmall,
         color=MaterialTheme.colorScheme.onSurfaceVariant)
+      }
+     }
+    } else if(electric) {
+     item {
+      LabPanel("Fonte elétrica detectada") {
+       Text("Fonte informada pelo Android: ${if(reading.plugged == true) reading.source else "Desconectada"}",
+        style=MaterialTheme.typography.bodyMedium,fontWeight=FontWeight.SemiBold)
+       Text("Conecte o carregador antes de iniciar. O Android distingue Tomada, USB e Sem fio, mas USB também pode ser um painel ou power bank.",
+        style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+       if(reading.plugged != true || reading.mode.name !in setOf("CHARGING", "FULL"))
+        Text("Aguardando carregador e leitura de carga válida.", style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.error)
       }
      }
     } else item {
@@ -365,13 +383,23 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
      Text("Confira a duração e a potência informadas.",style=MaterialTheme.typography.labelSmall,
       color=MaterialTheme.colorScheme.error)
     }
-    Button(onClick={if(page=="solar") vm.startLab(sky,selectedWatts,selectedMinutes,
-      screenCondition,cameraReported,wifiReported,recordingReported,notes) { onMonitor(true) }
-     else vm.startDischargeLab(selectedMinutes,screenCondition,
-      cameraReported,wifiReported,recordingReported,notes) { onMonitor(true) } },
-     enabled=validDuration && (page!="solar" || validWatts),
+    if(page=="electric" && !electricReady) {
+     Text("Aguarde uma leitura recente com o carregador conectado.",style=MaterialTheme.typography.labelSmall,
+      color=MaterialTheme.colorScheme.error)
+    }
+    Button(onClick={
+     when(page) {
+      "solar" -> vm.startLab(sky,selectedWatts,selectedMinutes,
+       screenCondition,cameraReported,wifiReported,recordingReported,notes) { onMonitor(true) }
+      "electric" -> vm.startElectricLab(selectedMinutes,screenCondition,
+       cameraReported,wifiReported,recordingReported,notes) { onMonitor(true) }
+      else -> vm.startDischargeLab(selectedMinutes,screenCondition,
+       cameraReported,wifiReported,recordingReported,notes) { onMonitor(true) }
+     }
+    },
+     enabled=validDuration && (page!="solar" || validWatts) && (page!="electric" || electricReady),
      modifier=Modifier.fillMaxWidth().heightIn(min=52.dp),
-     shape=RoundedCornerShape(16.dp)) { Text(if(page=="solar") "▶  Iniciar teste solar" else "▶  Iniciar teste de consumo") }
+     shape=RoundedCornerShape(16.dp)) { Text(when(page) { "solar" -> "▶  Iniciar teste solar"; "electric" -> "▶  Iniciar carregamento elétrico"; else -> "▶  Iniciar teste de consumo" }) }
    }
   }
  }
@@ -516,14 +544,18 @@ private fun RunningLabCard(test: LabTest,now: Long,vm: PulsoViewModel) {
  val total=(now-test.startedAt).coerceAtLeast(0).let { if(test.targetMs!=null) it.coerceAtMost(test.targetMs) else it }
  var confirm by remember { mutableStateOf(false) }
  val discharge=test.kind=="DISCHARGE"
- LabPanel(if(discharge) "⏱️ Consumo em andamento" else "⏱️ Teste solar em andamento") {
+ val electric=test.kind=="ELECTRIC"
+ LabPanel(if(discharge) "⏱️ Consumo em andamento" else if(electric) "⏱️ Carregamento elétrico em andamento" else "⏱️ Teste solar em andamento") {
   Text(duration(total),style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Bold)
   if(test.deadlineAt != null) Text("Restante: ${duration((test.deadlineAt-now).coerceAtLeast(0))}")
-  if(!discharge) Text("Céu: ${skyLabel(test.sky)} • Painel: ${test.panelWatts ?: "?"} W")
+  if(!discharge && !electric) Text("Céu: ${skyLabel(test.sky)} • Painel: ${test.panelWatts ?: "?"} W")
+  else if(electric) Text("Fonte detectada: ${test.electricSource} (conforme Android)")
   else Text("Sem carregador • ${if(test.externalSeen) "Fonte externa detectada!" else "Nenhuma interferência detectada"}",
    color=if(test.externalSeen) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
-  Text("Bateria inicial: ${test.initialPercent?.let { "$it%" } ?: "Sem leitura"}")
-  Text("Temperatura inicial: ${temperatureText(test.initialTemperatureC)} • Última: ${temperatureText(test.finalTemperatureC)}",
+  Text("Bateria: ${percentText(test.initialPercent)} → ${percentText(test.finalPercent)}")
+  Text("Temperatura inicial: ${temperatureText(test.initialTemperatureC)} • Média: ${temperatureText(LabTemperature.meanC(test.temperatureSumC,test.temperatureCount))}",
+   style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+  Text("Última: ${temperatureText(test.finalTemperatureC)} • Máxima: ${temperatureText(test.maxTemperatureC)}",
    style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
   if(discharge) {
    Text("Tempo confirmado sem fonte: ${duration(test.notChargingMs)}")
@@ -532,11 +564,13 @@ private fun RunningLabCard(test: LabTest,now: Long,vm: PulsoViewModel) {
    Text("Carregando: ${duration(test.chargingMs)} • Sem carregar: ${duration(test.notChargingMs)}")
    val mean=LabMath.meanMa(test.weightedMaMs,test.validCurrentMs)
    Text("Média durante carga: ${mean?.let { "+${it.roundToInt()} mA" } ?: "Indisponível"}")
-   Text("Mudou o tempo?",style=MaterialTheme.typography.labelLarge)
-   Row(horizontalArrangement=Arrangement.spacedBy(6.dp),modifier=Modifier.fillMaxWidth()) {
-    skyOptions.forEach { option -> LabChoice(option.emoji,test.sky==option.key,Modifier.weight(1f)) {
-     vm.changeLabSky(option.key)
-    } }
+   if(!electric) {
+    Text("Mudou o tempo?",style=MaterialTheme.typography.labelLarge)
+    Row(horizontalArrangement=Arrangement.spacedBy(6.dp),modifier=Modifier.fillMaxWidth()) {
+     skyOptions.forEach { option -> LabChoice(option.emoji,test.sky==option.key,Modifier.weight(1f)) {
+      vm.changeLabSky(option.key)
+     } }
+    }
    }
   }
   val unknown=LabMath.unknownMs(total,test.chargingMs,test.notChargingMs)
@@ -570,11 +604,16 @@ private fun reportText(test: LabTest): String {
  val total=((test.endedAt ?: test.startedAt)-test.startedAt).coerceAtLeast(0)
  val unknown=LabMath.unknownMs(total,test.chargingMs,test.notChargingMs)
  val discharge=test.kind=="DISCHARGE"
+ val electric=test.kind=="ELECTRIC"
  val drop=LabMath.dischargePoints(test.initialPercent,test.finalPercent,test.externalSeen)
  val delta=if(test.initialPercent!=null && test.finalPercent!=null)
   test.finalPercent-test.initialPercent else null
  return buildString {
-  appendLine(if(discharge) "Pulso Bateria • Teste de Consumo" else "Pulso Bateria • Teste Solar (${test.panelWatts ?: "?"} W)")
+  appendLine(when(test.kind) {
+   "DISCHARGE" -> "Pulso Bateria • Teste de Consumo"
+   "ELECTRIC" -> "Pulso Bateria • Carregamento Elétrico"
+   else -> "Pulso Bateria • Teste Solar (${test.panelWatts ?: "?"} W)"
+  })
   appendLine("Início: ${date(test.startedAt)}")
   appendLine("Fim: ${date(test.endedAt ?: test.startedAt)}")
   appendLine("Duração: ${duration(total)}")
@@ -586,7 +625,8 @@ private fun reportText(test: LabTest): String {
    appendLine("Fonte externa detectada: ${if(test.externalSeen) "Sim (interferência)" else "Não nas leituras"}")
    appendLine("Tempo confirmado sem fonte: ${duration(test.notChargingMs)}")
   } else {
-   appendLine("Condição do céu ao final: ${skyLabel(test.sky)}")
+   if(test.kind=="SOLAR") appendLine("Condição do céu ao final: ${skyLabel(test.sky)}")
+   if(test.kind=="ELECTRIC") appendLine("Fonte detectada ao iniciar: ${test.electricSource} (Android; USB pode ser solar/power bank)")
    appendLine("Tempo carregando: ${duration(test.chargingMs)}")
    appendLine("Tempo sem carregar: ${duration(test.notChargingMs)}")
    appendLine("Corrente média durante carga: ${LabMath.meanMa(test.weightedMaMs,test.validCurrentMs)?.let { "+${it.roundToInt()} mA" } ?: "Indisponível"}")
@@ -594,11 +634,12 @@ private fun reportText(test: LabTest): String {
   appendLine("Tempo sem leitura: ${duration(unknown)}")
   appendLine("Cobertura de leitura: ${LabReportMath.coveragePercent(total,test.chargingMs,test.notChargingMs)}%")
   appendLine("Temperatura inicial: ${temperatureText(test.initialTemperatureC)}")
+  appendLine("Temperatura média das ${test.temperatureCount} leituras válidas: ${temperatureText(LabTemperature.meanC(test.temperatureSumC,test.temperatureCount))}")
   appendLine("Temperatura final/última leitura: ${temperatureText(test.finalTemperatureC)}")
   appendLine("Temperatura máxima observada: ${temperatureText(test.maxTemperatureC)}")
   appendLine("Condições informadas: ${conditionText(test)}")
   if(test.notes.isNotBlank()) appendLine("Observações: ${test.notes}")
-  append("Nota: valores de bateria e temperatura são leituras do Android; intervalos sem leitura não foram estimados.")
+  append("Nota: temperatura média é a média aritmética das leituras válidas, sem interpolar lacunas; corrente é líquida na bateria, não a do carregador.")
  }
 }
 
@@ -644,6 +685,7 @@ private fun LabResult(test: LabTest, onDelete: (Long) -> Unit) {
  val missing=LabMath.unknownMs(total,test.chargingMs,test.notChargingMs)
  val confirmed=(total-missing).coerceAtLeast(0)
  val discharge=test.kind=="DISCHARGE"
+ val electric=test.kind=="ELECTRIC"
  val drop=LabMath.dischargePoints(test.initialPercent,test.finalPercent,test.externalSeen)
  val delta=if(test.initialPercent!=null && test.finalPercent!=null) test.finalPercent-test.initialPercent else null
  val rate=LabReportMath.dischargeRate(drop,total)
@@ -653,7 +695,7 @@ private fun LabResult(test: LabTest, onDelete: (Long) -> Unit) {
   Column(Modifier.padding(18.dp),verticalArrangement=Arrangement.spacedBy(14.dp)) {
    Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,
     horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-    Text(if(discharge) "🔋 Teste de Consumo" else "☀️ Teste Solar",modifier=Modifier.weight(1f),
+    Text(if(discharge) "🔋 Teste de Consumo" else if(electric) "🔌 Carregamento Elétrico" else "☀️ Teste Solar",modifier=Modifier.weight(1f),
      style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold)
     Surface(shape=RoundedCornerShape(22.dp),color=MaterialTheme.colorScheme.surfaceVariant) {
      Text(duration(total),modifier=Modifier.padding(horizontal=12.dp,vertical=6.dp),
@@ -661,7 +703,7 @@ private fun LabResult(test: LabTest, onDelete: (Long) -> Unit) {
     }
    }
    Text("${date(test.startedAt)} • ${if(test.status=="COMPLETED") "Automático" else "Manual"}" +
-    if(!discharge) " • ${test.panelWatts ?: "?"} W" else "",
+    if(!discharge && !electric) " • ${test.panelWatts ?: "?"} W" else if(electric) " • ${test.electricSource}" else "",
     style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
    if(!expanded) {
     Text("Bateria: ${percentText(test.initialPercent)} → ${percentText(test.finalPercent)}",style=MaterialTheme.typography.bodyMedium)
@@ -691,7 +733,8 @@ private fun LabResult(test: LabTest, onDelete: (Long) -> Unit) {
      LabResultRow("Tempo confirmado sem fonte",duration(test.notChargingMs))
      LabResultRow("Fonte externa detectada",if(test.externalSeen) "Sim" else "Não nas leituras")
     } else {
-     LabResultRow("Condição do céu",skyLabel(test.sky))
+     if(!electric) LabResultRow("Condição do céu",skyLabel(test.sky))
+     else LabResultRow("Fonte detectada",test.electricSource)
      LabResultRow("Carregando",duration(test.chargingMs))
      LabResultRow("Sem carregar",duration(test.notChargingMs))
     }
@@ -701,9 +744,14 @@ private fun LabResult(test: LabTest, onDelete: (Long) -> Unit) {
     Text("Temperatura da bateria",style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.SemiBold)
     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)) {
      LabSmallValue("Inicial",temperatureText(test.initialTemperatureC),Modifier.weight(1f))
+     LabSmallValue("Média",temperatureText(LabTemperature.meanC(test.temperatureSumC,test.temperatureCount)),Modifier.weight(1f))
+    }
+    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp)) {
      LabSmallValue("Final*",temperatureText(test.finalTemperatureC),Modifier.weight(1f))
      LabSmallValue("Máxima",temperatureText(test.maxTemperatureC),Modifier.weight(1f))
     }
+    Text("Média calculada com ${test.temperatureCount} leituras válidas; não representa intervalos sem observação.",
+     style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
     Text("* Última temperatura medida pelo Android, podendo ser anterior ao fim do teste.",
      style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
     Text("Condições informadas",style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.SemiBold)

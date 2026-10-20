@@ -1,6 +1,14 @@
 # Pulso Bateria
 
-**0.1.0-alpha.64 • versionCode 64** — Android nativo, Kotlin e Jetpack Compose.
+**0.1.0-alpha.65 • versionCode 65** — Android nativo, Kotlin e Jetpack Compose.
+
+## Novidades da alpha.65
+
+- Labs recebe o Teste de Carregamento Elétrico com duração manual ou programada e verificação da fonte conectada informada pelo Android.
+- O carregamento elétrico registra bateria inicial e final, tempo efetivo carregando, corrente líquida média e lacunas observacionais.
+- Temperaturas inicial, média aritmética de leituras válidas, final e máxima ficam no relatório e histórico do Labs.
+- Room v10 migra a tabela Labs preservando resultados anteriores sem inventar médias térmicas retroativas.
+- Backup JSON v8 preserva a média térmica e a origem elétrica, mantendo leitura de backups antigos.
 
 ## Novidades da alpha.64
 

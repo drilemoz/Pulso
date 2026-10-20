@@ -21,6 +21,7 @@ class RoomMigrationTest {
  @Test fun migracaoDaVersao6PreservaTesteSolar() = checkMigration(6)
  @Test fun migracaoDaVersao7PreservaTesteDeConsumo() = checkMigration(7)
  @Test fun migracaoDaVersao8PreservaResumoSemInventarPico() = checkMigration(8)
+ @Test fun migracaoDaVersao9PreservaLabsSemInventarMedia() = checkMigration(9)
 
  private fun checkMigration(from: Int) = runBlocking {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
@@ -97,12 +98,21 @@ class RoomMigrationTest {
       legacy.execSQL("ALTER TABLE `lab_tests` ADD COLUMN `$column` $sqlType")
      }
    }
+   if(from>=9) {
+    legacy.execSQL("ALTER TABLE `sessions` ADD COLUMN `maxTemperatureC` REAL")
+   }
    legacy.version=from
   } finally { legacy.close() }
   val db=Room.databaseBuilder(context,BatteryDatabase::class.java,name)
-   .addMigrations(BatteryDatabase.MIGRATION_1_2,BatteryDatabase.MIGRATION_2_3,BatteryDatabase.MIGRATION_3_4,BatteryDatabase.MIGRATION_4_5,BatteryDatabase.MIGRATION_5_6,BatteryDatabase.MIGRATION_6_7,BatteryDatabase.MIGRATION_7_8,BatteryDatabase.MIGRATION_8_9).build()
+   .addMigrations(BatteryDatabase.MIGRATION_1_2,BatteryDatabase.MIGRATION_2_3,BatteryDatabase.MIGRATION_3_4,BatteryDatabase.MIGRATION_4_5,BatteryDatabase.MIGRATION_5_6,BatteryDatabase.MIGRATION_6_7,BatteryDatabase.MIGRATION_7_8,BatteryDatabase.MIGRATION_8_9,BatteryDatabase.MIGRATION_9_10).build()
   try {
    assertTrue(db.sessions().exportTelemetry().isEmpty())
+   if(from>=6) {
+    val old=db.labs().exportAll().single()
+    assertEquals(0,old.temperatureCount)
+    assertEquals(0.0,old.temperatureSumC,0.0)
+    assertEquals("",old.electricSource)
+   }
    if(from==7) {
     val old=db.labs().exportAll().single()
     assertEquals("DISCHARGE",old.kind)
@@ -114,7 +124,7 @@ class RoomMigrationTest {
     assertFalse(old.wifiReported)
     assertFalse(old.recordingReported)
     assertEquals("",old.notes)
-   } else if(from==8) {
+   } else if(from==8 || from==9) {
     val old=db.labs().exportAll().single()
     assertEquals("DISCHARGE",old.kind)
     assertNull(old.maxTemperatureC)
@@ -145,6 +155,27 @@ class RoomMigrationTest {
    context.deleteDatabase(name)
   }
  }
+ @Test fun carregamentoEletricoPersisteTemperaturasEMedia() = runBlocking {
+  val context=InstrumentationRegistry.getInstrumentation().targetContext
+  val db=Room.inMemoryDatabaseBuilder(context,BatteryDatabase::class.java).build()
+  try {
+   val savedId=db.labs().insert(LabTest(
+    kind="ELECTRIC",sky="",skyChanges="",panelWatts=null,
+    startedAt=1_000L,endedAt=61_000L,status="COMPLETED",
+    initialPercent=35,finalPercent=39,
+    initialTemperatureC=35.0,finalTemperatureC=38.0,maxTemperatureC=40.0,
+    temperatureSumC=113.0,temperatureCount=3,electricSource="Tomada"))
+   val stored=db.labs().byId(savedId)!!
+   assertEquals("ELECTRIC",stored.kind)
+   assertEquals("Tomada",stored.electricSource)
+   assertEquals(35,stored.initialPercent)
+   assertEquals(39,stored.finalPercent)
+   assertEquals(3,stored.temperatureCount)
+   assertEquals(113.0/3.0,stored.temperatureSumC/stored.temperatureCount,0.001)
+   assertEquals(40.0,stored.maxTemperatureC!!,0.001)
+  } finally { db.close() }
+ }
+
  @Test fun maximaTermicaPersistenteEmCargaEDescargaSemAmostraBruta() = runBlocking {
   val context=InstrumentationRegistry.getInstrumentation().targetContext
   val db=Room.inMemoryDatabaseBuilder(context,BatteryDatabase::class.java).build()

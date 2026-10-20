@@ -1,3 +1,15 @@
+# Validação 0.1.0-alpha.65 (20/10/2026)
+
+- Implementado o teste de carregamento elétrico no Labs, respeitando leituras reais da bateria. O início exige conexão informada pelo Android e `CHARGING`/`FULL`, além do serviço de monitoramento ativo.
+- Média térmica é aritmética das temperaturas válidas, não uma estimativa temporal. Leitura inicial e observações futuras são somadas; a final só é incluída se ainda não tiver sido contabilizada. Leituras sem timestamp novo não são recontadas. Ausência de amostras fica indisponível.
+- Room v10: migração explícita 9→10 com soma, contagem e tipo de fonte detectada no Labs, com zeros legados significando média desconhecida. Migrações Android instrumentadas preparadas, execução em Android pendente.
+- Backup JSON v8 grava os novos campos; leitura de v1–v7 permanece suportada sem inventar média histórica.
+- Os 18 scripts `tools/test_*.py` passaram; `tools/validate_source.py` e `tools/check_release_news.py` também passaram. O teste do SQL de migração executou as três instruções reais `ALTER TABLE`, preservou dois registros legados e comprovou escrita do novo tipo ELECTRIC.
+- Análise sintática via Kotlin PSI: 75 arquivos `.kt` com zero erros. Compilação/execução isolada da lógica `LabTemperature` em `kotlinc` 1.9, com média e nulos, aprovada.
+- `RoomMigrationTest` inclui teste de migração 9→10 e persistência de testes elétricos em banco Room em memória. Ambos foram escritos, mas ainda não executados no Android.
+- Tentativa real de `./gradlew :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --no-daemon` falhou antes da compilação por `UnknownHostException: services.gradle.org` ao obter Gradle 8.11.1.
+- Compilação Android Gradle, KSP/Room, testes instrumentados, funcionamento da tela e uso no aparelho físico permanecem pendentes até GitHub Actions/Android.
+
 # Validação 0.1.0-alpha.64 (20/10/2026)
 
 - Workflow Pulso-Android-Pulso-Bateria-44 (20/10/2026): falhou antes da compilação Android no `tools/test_release_news_gate.py` por data fixa da alpha.62 (esperava 19/10; CHANGELOG registrava 20/10).

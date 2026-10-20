@@ -29,7 +29,7 @@ class BackupManager(
 ) {
  companion object {
   const val FORMAT = "br.com.pulsobateria.backup"
-  const val VERSION = 7
+  const val VERSION = 8
   const val MAX_BYTES = 64 * 1024 * 1024
   private fun digest(value: ByteArray): String = MessageDigest.getInstance("SHA-256")
    .digest(value).joinToString("") { "%02x".format(it) }
@@ -84,6 +84,8 @@ class BackupManager(
     put("initialTemperatureC",t.initialTemperatureC ?: JSONObject.NULL)
     put("finalTemperatureC",t.finalTemperatureC ?: JSONObject.NULL)
     put("maxTemperatureC",t.maxTemperatureC ?: JSONObject.NULL)
+    put("temperatureSumC",t.temperatureSumC); put("temperatureCount",t.temperatureCount)
+    put("electricSource",t.electricSource)
     put("screenCondition",t.screenCondition); put("cameraReported",t.cameraReported)
     put("wifiReported",t.wifiReported); put("recordingReported",t.recordingReported)
     put("notes",t.notes)
@@ -217,6 +219,9 @@ class BackupManager(
     initialTemperatureC=if(backupVersion>=6 && !t.isNull("initialTemperatureC")) t.getDouble("initialTemperatureC") else null,
     finalTemperatureC=if(backupVersion>=6 && !t.isNull("finalTemperatureC")) t.getDouble("finalTemperatureC") else null,
     maxTemperatureC=if(backupVersion>=6 && !t.isNull("maxTemperatureC")) t.getDouble("maxTemperatureC") else null,
+    temperatureSumC=if(backupVersion>=8) t.getDouble("temperatureSumC") else 0.0,
+    temperatureCount=if(backupVersion>=8) t.getInt("temperatureCount") else 0,
+    electricSource=if(backupVersion>=8) t.getString("electricSource") else "",
     screenCondition=if(backupVersion>=6) t.getString("screenCondition") else "NAO_INFORMADA",
     cameraReported=backupVersion>=6 && t.getBoolean("cameraReported"),
     wifiReported=backupVersion>=6 && t.getBoolean("wifiReported"),
@@ -224,11 +229,15 @@ class BackupManager(
     notes=if(backupVersion>=6) t.getString("notes") else "")
   }
   require(labs.map { it.id }.toSet().size==labs.size && labs.all { t ->
-   t.id>0 && t.kind in setOf("SOLAR","DISCHARGE") &&
-   (if(t.kind=="SOLAR") t.sky in setOf("forte","parcial","nublado","chuva") &&
-    t.skyChanges.length in 1..3000 && t.panelWatts?.let { it in 1..200 } != false
-    else t.sky.isEmpty() && t.skyChanges.isEmpty() && t.panelWatts==null &&
-     t.chargingMs==0L && t.validCurrentMs==0L && t.weightedMaMs==0.0) &&
+   t.id>0 && t.kind in setOf("SOLAR","DISCHARGE","ELECTRIC") &&
+   (when(t.kind) {
+    "SOLAR" -> t.sky in setOf("forte","parcial","nublado","chuva") &&
+     t.skyChanges.length in 1..3000 && t.panelWatts?.let { it in 1..200 } != false && t.electricSource.isEmpty()
+    "ELECTRIC" -> t.sky.isEmpty() && t.skyChanges.isEmpty() && t.panelWatts==null &&
+     t.electricSource in setOf("Tomada","USB","Sem fio","Fonte externa")
+    else -> t.sky.isEmpty() && t.skyChanges.isEmpty() && t.panelWatts==null && t.electricSource.isEmpty() &&
+     t.chargingMs==0L && t.validCurrentMs==0L && t.weightedMaMs==0.0
+   }) &&
    t.targetMs?.let { it in 60_000L..86_400_000L } != false &&
    t.startedAt>0 && t.endedAt!=null && t.endedAt>=t.startedAt &&
    t.status in setOf("STOPPED","COMPLETED") &&
@@ -238,6 +247,8 @@ class BackupManager(
    t.validCurrentMs in 0..t.chargingMs && t.weightedMaMs.isFinite() && t.weightedMaMs>=0 &&
    (t.deadlineAt==null || t.deadlineAt>=t.startedAt) &&
    listOfNotNull(t.initialTemperatureC,t.finalTemperatureC,t.maxTemperatureC).all { it.isFinite() && it in -40.0..100.0 } &&
+   t.temperatureCount in 0..1_000_000 && t.temperatureSumC.isFinite() &&
+   (if(t.temperatureCount==0) t.temperatureSumC==0.0 else t.temperatureSumC/t.temperatureCount in -40.0..100.0) &&
    (t.maxTemperatureC==null || listOfNotNull(t.initialTemperatureC,t.finalTemperatureC).all { it<=t.maxTemperatureC }) &&
    t.screenCondition in setOf("NAO_INFORMADA","ACESA","APAGADA") &&
    t.notes.length<=160 && t.notes.none { Character.isISOControl(it) }

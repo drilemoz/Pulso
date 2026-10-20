@@ -22,3 +22,5 @@ Banco permanece v3: nenhuma mudança de entidades ou nova migração. Foram adic
 - **Room v7 (alpha.24):** migração `MIGRATION_6_7` com três colunas em `lab_tests`: `kind`, `externalSeen` e `lastPlugged`. Testes anteriores tornam-se `SOLAR`. SQL em `room-migration-6-7.sql`. Gerar schema KSP 7.json apenas por build real.
 
 - **Room v9 (alpha.60):** migração 8→9 adiciona `sessions.maxTemperatureC` anulável, sem inferir picos históricos. SQL de referência em `room-migration-8-9.sql`; schema JSON oficial pendente do KSP no CI.
+
+- **Room v10:** migração `MIGRATION_9_10`, colunas de soma, contagem térmica e fonte declarada/detectada do teste elétrico; SQL de referência `room-migration-9-10.sql`. Não cria leituras históricas e preserva as demais tabelas. O JSON oficial KSP deve ser gerado no CI.

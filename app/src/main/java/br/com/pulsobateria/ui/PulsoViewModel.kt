@@ -33,6 +33,9 @@ class PulsoViewModel(application: Application): AndroidViewModel(application) {
  fun startDischargeLab(minutes: Int?, screen: String, camera: Boolean, wifi: Boolean,
   recording: Boolean, notes: String, ensureMonitor: () -> Unit) =
   startLabInternal(ensureMonitor) { app.labs.startDischarge(minutes,screen,camera,wifi,recording,notes) }
+ fun startElectricLab(minutes: Int?, screen: String, camera: Boolean, wifi: Boolean,
+  recording: Boolean, notes: String, ensureMonitor: () -> Unit) =
+  startLabInternal(ensureMonitor) { app.labs.startElectric(minutes,screen,camera,wifi,recording,notes) }
  private fun startLabInternal(ensureMonitor: () -> Unit, start: suspend () -> Unit) {
   labError = null
   app.repository.serviceError.value = null

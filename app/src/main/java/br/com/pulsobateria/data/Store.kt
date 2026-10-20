@@ -223,6 +223,11 @@ data class LabTest(
  // Temperaturas reais reportadas pelo Android; nullable em aparelhos sem sensor.
  val initialTemperatureC: Double? = null, val finalTemperatureC: Double? = null,
  val maxTemperatureC: Double? = null,
+ // Média aritmética de amostras térmicas reais coletadas durante o teste.
+ @ColumnInfo(defaultValue = "0.0") val temperatureSumC: Double = 0.0,
+ @ColumnInfo(defaultValue = "0") val temperatureCount: Int = 0,
+ // Fonte apontada pelo Android no início; USB não identifica a origem elétrica.
+ @ColumnInfo(defaultValue = "''") val electricSource: String = "",
  // Condições informadas manualmente, nunca inferidas do uso de outros apps.
  @ColumnInfo(defaultValue = "'NAO_INFORMADA'") val screenCondition: String = "NAO_INFORMADA",
  @ColumnInfo(defaultValue = "0") val cameraReported: Boolean = false,
@@ -305,11 +310,19 @@ interface SessionDao {
  @Update suspend fun update(session: Session)
  @Query("DELETE FROM sessions WHERE id NOT IN (SELECT id FROM sessions ORDER BY id DESC LIMIT 500)") suspend fun trim()
 }
-@Database(entities = [Session::class, SessionSample::class, TelemetrySample::class, LabTest::class], version = 9, exportSchema = true)
+@Database(entities = [Session::class, SessionSample::class, TelemetrySample::class, LabTest::class], version = 10, exportSchema = true)
 abstract class BatteryDatabase: RoomDatabase() {
  abstract fun sessions(): SessionDao
  abstract fun labs(): LabDao
  companion object {
+  val MIGRATION_9_10 = object : Migration(9, 10) {
+   override fun migrate(db: SupportSQLiteDatabase) {
+    // Não reconstruir médias antigas de leituras que não foram armazenadas.
+    db.execSQL("ALTER TABLE `lab_tests` ADD COLUMN `temperatureSumC` REAL NOT NULL DEFAULT 0.0")
+    db.execSQL("ALTER TABLE `lab_tests` ADD COLUMN `temperatureCount` INTEGER NOT NULL DEFAULT 0")
+    db.execSQL("ALTER TABLE `lab_tests` ADD COLUMN `electricSource` TEXT NOT NULL DEFAULT ''")
+   }
+  }
   val MIGRATION_8_9 = object : Migration(8, 9) {
    override fun migrate(db: SupportSQLiteDatabase) {
     // Legado desconhecido: NULL, pois amostras antigas podem ter sido descartadas.

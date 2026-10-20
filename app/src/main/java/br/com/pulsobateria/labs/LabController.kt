@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import br.com.pulsobateria.MainActivity
 import br.com.pulsobateria.R
 import br.com.pulsobateria.core.LabMath
+import br.com.pulsobateria.core.LabTemperature
 import br.com.pulsobateria.data.LabDao
 import br.com.pulsobateria.data.LabTest
 import br.com.pulsobateria.monitor.BatteryRepository
@@ -32,7 +33,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /** Não cria um segundo foreground service: consome o mesmo monitoramento do app. */
-private fun validTemperature(temp: Double): Boolean = temp.isFinite() && temp in -40.0..100.0
+private fun validTemperature(temp: Double): Boolean = LabTemperature.valid(temp) != null
 
 class LabController(
  private val context: Context, private val dao: LabDao,
@@ -79,6 +80,11 @@ class LabController(
   startInternal("SOLAR", sky, panelWatts, minutes, screen, camera, wifi, recording, notes)
  }
 
+ /** Teste de carga por fonte elétrica declarada, com presença de conexão reportada pelo Android. */
+ suspend fun startElectric(minutes: Int?, screen: String = "NAO_INFORMADA",
+  camera: Boolean = false, wifi: Boolean = false, recording: Boolean = false,
+  notes: String = "") = startInternal("ELECTRIC", "", null, minutes, screen, camera, wifi, recording, notes)
+
  /** Teste de descarga: sem fonte de energia externa no início. */
  suspend fun startDischarge(minutes: Int?, screen: String = "NAO_INFORMADA",
   camera: Boolean = false, wifi: Boolean = false, recording: Boolean = false,
@@ -86,7 +92,7 @@ class LabController(
 
  private suspend fun startInternal(kind: String, sky: String, panelWatts: Int?, minutes: Int?,
   screen: String, camera: Boolean, wifi: Boolean, recording: Boolean, notes: String) {
-  require(kind in setOf("SOLAR", "DISCHARGE"))
+  require(kind in setOf("SOLAR", "DISCHARGE", "ELECTRIC"))
   require(minutes == null || minutes in 1..1440)
   require(screen in setOf("NAO_INFORMADA", "ACESA", "APAGADA"))
   require(notes.length <= 160 && notes.none { Character.isISOControl(it) })
@@ -102,15 +108,25 @@ class LabController(
      "Desconecte o painel, carregador ou power bank e aguarde uma leitura recente da bateria."
     }
    }
+   if (kind == "ELECTRIC") {
+    check(reading?.plugged == true && reading.percent != null &&
+     reading.mode.name in setOf("CHARGING", "FULL")) {
+     "Conecte o carregador elétrico e aguarde uma leitura recente de carga do Android."
+    }
+   }
+   val initialTemp = reading?.temperature?.takeIf(::validTemperature)
+   val tempAggregate = LabTemperature.add(0.0, 0, initialTemp)
    val targetMs = minutes?.toLong()?.times(60_000L)
    val test = LabTest(kind=kind, sky=sky,skyChanges=if(kind=="SOLAR") "$now:$sky" else "",
     panelWatts=panelWatts,targetMs=targetMs,startedAt=now,deadlineAt=targetMs?.let { now+it },
     initialPercent=reading?.percent, finalPercent=reading?.percent,
     lastReadingAt=null,lastElapsedMs=null,lastMode=null,lastCurrentMa=null,
     lastCurrentSource=null,externalSeen=false,lastPlugged=null,
-    initialTemperatureC=reading?.temperature?.takeIf(::validTemperature),
-    finalTemperatureC=reading?.temperature?.takeIf(::validTemperature),
-    maxTemperatureC=reading?.temperature?.takeIf(::validTemperature),
+    initialTemperatureC=initialTemp,
+    finalTemperatureC=initialTemp,
+    maxTemperatureC=initialTemp,
+    temperatureSumC=tempAggregate.sumC,temperatureCount=tempAggregate.count,
+    electricSource=if(kind=="ELECTRIC") reading?.source?.takeIf { it in setOf("Tomada", "USB", "Sem fio", "Fonte externa") } ?: "Fonte externa" else "",
     screenCondition=screen,cameraReported=camera,wifiReported=wifi,
     recordingReported=recording,notes=notes)
    val id = withContext(Dispatchers.IO) { dao.insert(test).also { dao.trim() } }
@@ -164,7 +180,7 @@ class LabController(
   mutex.withLock {
    var test = mutable.value ?: return@withLock
    // Emissões antigas não podem atualizar nem prolongar um experimento.
-   if (reading.updated <= (test.lastReadingAt ?: 0L) || reading.updated < test.startedAt) return@withLock
+   if (reading.updated <= (test.lastReadingAt ?: 0L) || reading.updated <= test.startedAt) return@withLock
    if (test.deadlineAt != null && reading.updated >= test.deadlineAt) {
     finishLocked(test,test.deadlineAt,"COMPLETED")
     return@withLock
@@ -179,9 +195,11 @@ class LabController(
      test.lastCurrentSource,reading.currentInfo.source.name, elapsed-oldElapsed,reading.updated-oldWall)
    } else LabMath.Interval()
    val observedTemp = reading.temperature?.takeIf(::validTemperature)
+   val tempAggregate = LabTemperature.add(test.temperatureSumC, test.temperatureCount, observedTemp)
    test = test.copy(
     finalTemperatureC=observedTemp ?: test.finalTemperatureC,
     maxTemperatureC=listOfNotNull(test.maxTemperatureC,observedTemp).maxOrNull(),
+    temperatureSumC=tempAggregate.sumC, temperatureCount=tempAggregate.count,
     initialPercent=test.initialPercent ?: reading.percent,
     finalPercent=reading.percent ?: test.finalPercent,
     chargingMs=test.chargingMs+interval.chargingMs,
@@ -203,10 +221,15 @@ class LabController(
   val end = endedAt.coerceAtLeast(test.startedAt)
   val recent = repository.reading.value.takeIf { it.updated in test.startedAt..end &&
    it.updated >= (test.lastReadingAt ?: 0L) && it.updated >= end-90_000L }
+  // A última leitura só entra na média se ainda não foi contada por observe().
+  val freshEndTemp=recent?.takeIf { it.updated > (test.lastReadingAt ?: test.startedAt) }
+   ?.temperature?.takeIf(::validTemperature)
   val endTemperature=recent?.temperature?.takeIf(::validTemperature)
+  val tempAggregate=LabTemperature.add(test.temperatureSumC,test.temperatureCount,freshEndTemp)
   val saved = test.copy(endedAt=end,status=status,
    finalTemperatureC=endTemperature ?: test.finalTemperatureC,
    maxTemperatureC=listOfNotNull(test.maxTemperatureC,endTemperature).maxOrNull(),
+   temperatureSumC=tempAggregate.sumC,temperatureCount=tempAggregate.count,
    finalPercent=recent?.percent ?: test.finalPercent,
    lastReadingAt=recent?.updated ?: test.lastReadingAt,
    externalSeen=test.externalSeen || (test.kind=="DISCHARGE" && recent?.plugged==true))
@@ -233,7 +256,7 @@ class LabController(
     else -> "Descarga não conclusiva; consulte o relatório."
    }
   } else "Carga: ${test.chargingMs/60_000} min • Sem carga: ${test.notChargingMs/60_000} min • Sem leitura: ${unknown/60_000} min"
-  val title=if(test.kind=="DISCHARGE") "Labs: teste de consumo concluído" else "Labs: teste solar concluído"
+  val title=if(test.kind=="DISCHARGE") "Labs: teste de consumo concluído" else if(test.kind=="ELECTRIC") "Labs: carregamento elétrico concluído" else "Labs: teste solar concluído"
   manager.notify(20_000+(test.id%10_000).toInt(),NotificationCompat.Builder(context,"labs")
    .setSmallIcon(R.drawable.ic_notification).setContentTitle(title)
    .setContentText(content).setStyle(NotificationCompat.BigTextStyle().bigText(content))

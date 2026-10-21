@@ -20,21 +20,25 @@ manifest=ET.parse(root/'app/src/main/AndroidManifest.xml').getroot()
 ns='{http://schemas.android.com/apk/res/android}'
 permissions={x.attrib[ns+'name'] for x in manifest.findall('uses-permission')}
 assert permissions == {'android.permission.POST_NOTIFICATIONS','android.permission.INTERNET','android.permission.CAMERA','android.permission.FOREGROUND_SERVICE','android.permission.FOREGROUND_SERVICE_SPECIAL_USE','android.permission.RECEIVE_BOOT_COMPLETED','android.permission.PACKAGE_USAGE_STATS'}
+# Camera apenas para pareamento QR; nao deve filtrar dispositivos sem camera no Play/ChromeOS.
+features={x.attrib[ns+'name']: x.attrib.get(ns+'required') for x in manifest.findall('uses-feature')}
+assert features.get('android.hardware.camera') == 'false', 'Camera do QR deve ser hardware opcional (Android Lint)'
+assert features.get('android.hardware.camera.autofocus') == 'false', 'Autofoco nao pode ser exigido para usar o monitor'
 assert manifest.find("application/receiver[@"+ns+"name='.monitor.MonitorBootReceiver']") is not None
 assert (root/'app/src/main/java/br/com/pulsobateria/ui/AppUsageScreen.kt').is_file()
 assert (root/'app/src/main/java/br/com/pulsobateria/usage/UsageInsightsReader.kt').is_file()
 
 gradle=(root/'app/build.gradle.kts').read_text()
 version=re.search(r'versionName = "([^"]+)"',gradle).group(1)
-assert version == '0.1.0-alpha.67'
+assert version == '0.1.0-alpha.68'
 assert (root/'tools/test_compose_regression.py').is_file()
 assert (root/'tools/test_release_consistency.py').is_file()
 assert 'python3 tools/test_compose_regression.py' in (root/'.github/workflows/android.yml').read_text()
-assert re.search(r'versionCode = 67\b',gradle)
-assert 'versionCode 67' in (root/'README.md').read_text()
-assert 'Versão atual 0.1.0-alpha.67 / versionCode 67.' in (root/'AGENTS.md').read_text()
-assert 'Próxima 0.1.0-alpha.68 / 68.' in (root/'AGENTS.md').read_text()
-assert 'tag="apk-alpha.67-' in (root/'.github/workflows/android.yml').read_text()
+assert re.search(r'versionCode = 68\b',gradle)
+assert 'versionCode 68' in (root/'README.md').read_text()
+assert 'Versão atual 0.1.0-alpha.68 / versionCode 68.' in (root/'AGENTS.md').read_text()
+assert 'Próxima 0.1.0-alpha.69 / 69.' in (root/'AGENTS.md').read_text()
+assert 'tag="apk-alpha.68-' in (root/'.github/workflows/android.yml').read_text()
 for file in ['README.md','CHANGELOG.md','RELEASE_NOTES.md','docs/VERSIONING.md','.github/workflows/android.yml']:
  assert version in (root/file).read_text(), f'Version mismatch: {file}'
 jar=root/'gradle/wrapper/gradle-wrapper.jar'

@@ -1,3 +1,17 @@
+# Validação 0.1.0-alpha.68 (20/10/2026)
+
+- Logs do workflow 48 analisados: na alpha.67 passaram `:core:test`, `:app:testDebugUnitTest`, `:app:assembleDebug`, compilacao e empacotamento dos testes Android. Falha unica bloqueadora: `:app:lintDebug`, `PermissionImpliesUnsupportedChromeOsHardware` por `CAMERA` sem `uses-feature required=false`.
+- Correcao limitada ao AndroidManifest: `android.hardware.camera` e `android.hardware.camera.autofocus` explicitamente opcionais, sem suprimir Lint; preservadas permissao CAMERA e funcionalidade de scan QR.
+- Adicionados `tools/test_camera_feature_optional.py`, tres cenarios negativos e verificacao estrutural em `tools/validate_source.py`; integrado ao workflow CI.
+- Room v11, backup JSON v9, regra de 100%, corrente, historico e monitoramento remoto permanecem inalterados.
+- Validacao local: 20 scripts `tools/test_*.py` aprovados, incluindo o contrato opcional da camera (3 cenarios negativos), migracao SQLite 10→11, gate de Novidades (9 cenarios) e contratos de QR/LAN.
+- `python3 tools/validate_source.py` e `python3 tools/check_release_news.py`: aprovados; Gradle Wrapper SHA-256 e CRC validos.
+- `bash tools/run_external_labs_policy_test.sh`: 16 invariantes Kotlin/JVM aprovados.
+- `bash tools/run_math_audit.sh`: 15 conjuntos de verificacoes Kotlin/JVM dos calculos aprovados.
+- `tools/test_labs_full_charge.py` atualizado para verificar a novidade introduzida na alpha.67 via CHANGELOG, em vez de exigir a versao 67 na tela de Novidades do build 68.
+- Tentativa local `./gradlew :core:test :app:testDebugUnitTest :app:assembleDebugAndroidTest :app:lintDebug :app:assembleDebug --offline --no-daemon`: bloqueada ANTES do build por `UnknownHostException: services.gradle.org` ao obter Gradle 8.11.1.
+- A compilacao da alpha.68, o Lint Android e testes de instalacao/camera precisam ser reconfirmados no GitHub Actions/dispositivo. Nenhuma alegacao de compilacao local bem sucedida.
+
 # Validação 0.1.0-alpha.67 (20/10/2026)
 
 - Adicionada opção de finalização em 100% aos formulários Solar e Elétrico, inclusive testes manuais e iniciados por rede local (ativada por padrão para novos testes).

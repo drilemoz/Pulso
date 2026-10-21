@@ -12,14 +12,13 @@ import br.com.pulsobateria.BuildConfig
 
 /** Alterações exclusivas do build atual. Atualizar obrigatoriamente em cada release. */
 internal object ReleaseNews {
- const val VERSION_NAME = "0.1.0-alpha.67"
- const val VERSION_CODE = 67
+ const val VERSION_NAME = "0.1.0-alpha.68"
+ const val VERSION_CODE = 68
  val ITEMS = listOf(
-  "Labs Solar e Carregamento Elétrico recebem Finalizar ao atingir 100%, ligado por padrão e disponível mesmo na duração manual.",
-  "Uma nova leitura válida de 100% encerra automaticamente o teste, preserva os valores observados e emite a notificação de conclusão.",
-  "O histórico e o relatório distinguem término por bateria cheia, por prazo e por ação manual, sem desligar fisicamente o carregador.",
-  "Room v11 e backup JSON v9 preservam a escolha individual do teste, com migração que não ativa a função em registros antigos.",
-
+  "Manifesto declara a câmera opcional para o leitor de QR Code do Labs, corrigindo o erro Android Lint do workflow 48.",
+  "O aplicativo continua instalável em aparelhos sem câmera, sem impedir o monitoramento de bateria e os testes locais.",
+  "Uma regressão automática verifica que as permissões de câmera e o hardware opcional permaneçam declarados corretamente.",
+  "Compilação Debug e testes unitários da alpha.67 já estavam aprovados no workflow 48; esta release corrige a etapa de Lint.",
  )
 }
 

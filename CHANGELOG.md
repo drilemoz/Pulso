@@ -1,3 +1,10 @@
+## 0.1.0-alpha.68 (20/10/2026)
+
+- Manifesto declara a câmera opcional para o leitor de QR Code do Labs, corrigindo o erro Android Lint do workflow 48.
+- O aplicativo continua instalável em aparelhos sem câmera, sem impedir o monitoramento de bateria e os testes locais.
+- Uma regressão automática verifica que as permissões de câmera e o hardware opcional permaneçam declarados corretamente.
+- Compilação Debug e testes unitários da alpha.67 já estavam aprovados no workflow 48; esta release corrige a etapa de Lint.
+
 ## 0.1.0-alpha.67 (20/10/2026)
 
 - Labs Solar e Carregamento Elétrico recebem Finalizar ao atingir 100%, ligado por padrão e disponível mesmo na duração manual.

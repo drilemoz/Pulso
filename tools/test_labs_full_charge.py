@@ -32,7 +32,11 @@ assert 'backupVersion>=9 && t.getBoolean("stopAtFull")' in backup
 assert 't.status in setOf("STOPPED","COMPLETED","FULL")' in backup
 assert 'migracaoDaVersao10PreservaOpcaoDesativadaEmTestesLegados' in instrumented
 assert 'assertFalse(old.stopAtFull)' in instrumented and 'assertTrue(stored.stopAtFull)' in instrumented
-assert '0.1.0-alpha.67' in news
+# A funcionalidade foi introduzida na alpha.67; Novidades deve anunciar apenas o build atual.
+changelog=(root/'CHANGELOG.md').read_text()
+assert '## 0.1.0-alpha.67' in changelog
+version_name=re.search(r'versionName\s*=\s*"([^"]+)"',(root/'app/build.gradle.kts').read_text()).group(1)
+assert f'const val VERSION_NAME = "{version_name}"' in news
 section=store.split('val MIGRATION_10_11 =',1)[1].split('val MIGRATION_9_10',1)[0]
 sql=re.findall(r'db.execSQL\("([^"\n]+)"\)',section)
 assert len(sql)==1,sql

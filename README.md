@@ -1,6 +1,13 @@
 # Pulso Bateria
 
-**0.1.0-alpha.67 • versionCode 67** — Android nativo, Kotlin e Jetpack Compose.
+**0.1.0-alpha.68 • versionCode 68** — Android nativo, Kotlin e Jetpack Compose.
+
+## Novidades da alpha.68
+
+- Manifesto declara a câmera opcional para o leitor de QR Code do Labs, corrigindo o erro Android Lint do workflow 48.
+- O aplicativo continua instalável em aparelhos sem câmera, sem impedir o monitoramento de bateria e os testes locais.
+- Uma regressão automática verifica que as permissões de câmera e o hardware opcional permaneçam declarados corretamente.
+- Compilação Debug e testes unitários da alpha.67 já estavam aprovados no workflow 48; esta release corrige a etapa de Lint.
 
 ## Novidades da alpha.67
 

@@ -12,8 +12,8 @@ android {
   minSdk = 26
   targetSdk = 35
   testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-  versionCode = 67
-  versionName = "0.1.0-alpha.67"
+  versionCode = 68
+  versionName = "0.1.0-alpha.68"
  }
  buildFeatures { compose = true; buildConfig = true; aidl = true }
  compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }

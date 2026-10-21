@@ -3,6 +3,9 @@
  <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
  <uses-permission android:name="android.permission.INTERNET"/>
  <uses-permission android:name="android.permission.CAMERA"/>
+ <!-- A camera e o foco automatico sao opcionais: as funcoes de bateria nao dependem desse hardware. -->
+ <uses-feature android:name="android.hardware.camera" android:required="false"/>
+ <uses-feature android:name="android.hardware.camera.autofocus" android:required="false"/>
  <!-- Acesso especial opt-in, solicitado apenas na aba Aplicativos. Não é permissão automática. -->
  <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions"/>
  <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>

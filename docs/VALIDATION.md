@@ -1,3 +1,20 @@
+# Validação 0.1.0-alpha.69 (20/10/2026)
+
+- Labs Monitoramento Remoto 2.0: escolha de papel por janela, câmera integrada ao diálogo em retrato, controle do flash e permissão contextual.
+- LAN v2: QR de uso único expira em 5 minutos, credencial de sessão distinta, somente um controlador, revogação pela tela ou notificação privada; reconexão da sessão autorizada sem reiniciar testes.
+- Controle remoto solar e elétrico usa LabController existente; informações finais e médias de temperatura vêm de leituras persistidas, sem fabricar amostras.
+- QR antigo da alpha.68 não é compatível; atualizar os dois aparelhos para a alpha.69 e gerar novo código.
+- Comunicação limitada a IPv4 privado Wi-Fi/hotspot; tráfego local é TCP sem criptografia de transporte. Usar apenas em redes confiáveis.
+- Room v11, backup JSON v9, medidores, calibração e regra de 100% permanecem inalterados.
+- `tools/test_*.py`: 20 scripts aprovados, incluindo 24 contratos de LAN v2, migrações SQLite, permissões e gate de Novidades com 9 cenários.
+- `python3 tools/validate_source.py`, `python3 tools/test_release_consistency.py`: aprovados; Gradle Wrapper íntegro por SHA-256/CRC.
+- `bash tools/run_external_labs_policy_test.sh`: 16 invariantes Kotlin/JVM aprovados.
+- `bash tools/run_math_audit.sh`: 15 conjuntos de testes Kotlin/JVM de cálculo aprovados.
+- Parser PSI do Kotlin: 76 fontes de produção/teste sem erros de sintaxe.
+- Compilação isolada `RemoteLabsManager.kt` e `RemoteRevokeReceiver.kt` com Kotlin/JVM e stubs de Android/JSON, usando coroutines reais: aprovada. A compilação isolada detectou e permitiu corrigir a comparação de fim de linha em TCP (`Int` versus `Char`). Não substitui Android/Compose/ZXing reais.
+- Tentativa de `./gradlew :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest --offline --no-daemon`: bloqueada antes da compilação porque `services.gradle.org` não está acessível neste ambiente (Gradle Wrapper precisa da distribuição 8.11.1).
+- Build Android completo, Lint, teste do scanner pop-up em retrato, notificação e comunicação real entre dois celulares seguem **pendentes**.
+
 # Validação 0.1.0-alpha.68 (20/10/2026)
 
 - Logs do workflow 48 analisados: na alpha.67 passaram `:core:test`, `:app:testDebugUnitTest`, `:app:assembleDebug`, compilacao e empacotamento dos testes Android. Falha unica bloqueadora: `:app:lintDebug`, `PermissionImpliesUnsupportedChromeOsHardware` por `CAMERA` sem `uses-feature required=false`.

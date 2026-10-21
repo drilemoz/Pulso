@@ -68,7 +68,11 @@ class PulsoViewModel(application: Application): AndroidViewModel(application) {
  fun stopRemoteHosting() { app.remoteLabs.stopHosting() }
  fun connectRemote(payload: String) { app.remoteLabs.connect(payload) }
  fun disconnectRemote() { app.remoteLabs.disconnectController() }
- fun startRemoteSolar(sky: String, watts: Int?, minutes: Int?) { app.remoteLabs.startRemoteSolar(sky, watts, minutes) }
+ fun revokeRemoteAccess() { app.remoteLabs.revokeAccess() }
+ fun regenerateRemoteQr() { app.remoteLabs.regenerateQr() }
+ fun startRemoteLab(kind: String,sky: String,watts: Int?,minutes: Int?,stopAtFull: Boolean) {
+  app.remoteLabs.startRemoteLab(kind,sky,watts,minutes,stopAtFull)
+ }
  fun stopRemoteLab() { app.remoteLabs.stopRemoteLab() }
  val reading = app.repository.reading
  fun sessionSamples(sessionId: Long): Flow<List<SessionSample>> = app.repository.sessionSamples(sessionId)

@@ -12,13 +12,14 @@ import br.com.pulsobateria.BuildConfig
 
 /** Alterações exclusivas do build atual. Atualizar obrigatoriamente em cada release. */
 internal object ReleaseNews {
- const val VERSION_NAME = "0.1.0-alpha.68"
- const val VERSION_CODE = 68
+ const val VERSION_NAME = "0.1.0-alpha.69"
+ const val VERSION_CODE = 69
  val ITEMS = listOf(
-  "Manifesto declara a câmera opcional para o leitor de QR Code do Labs, corrigindo o erro Android Lint do workflow 48.",
-  "O aplicativo continua instalável em aparelhos sem câmera, sem impedir o monitoramento de bateria e os testes locais.",
-  "Uma regressão automática verifica que as permissões de câmera e o hardware opcional permaneçam declarados corretamente.",
-  "Compilação Debug e testes unitários da alpha.67 já estavam aprovados no workflow 48; esta release corrige a etapa de Lint.",
+  "Monitoramento remoto agora abre escolha entre ser monitorado e monitorar outro aparelho, com troca de função explícita.",
+  "Leitor QR foi integrado à janela vertical do Labs, com permissão de câmera sob demanda e controle da lanterna.",
+  "Controle LAN passa a iniciar testes solares e elétricos, com duração, condições e finalização opcional aos 100%.",
+  "Aparelho monitorado identifica o nome informado pelo controlador, mostra notificação de acesso e permite revogar pela tela ou notificação.",
+  "O novo pareamento usa QR temporário de uso único e sessão separada para reconexão; relatório permanece no aparelho medido.",
  )
 }
 

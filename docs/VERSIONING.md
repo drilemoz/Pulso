@@ -1,6 +1,6 @@
 # Versionamento
 
-Versão atual: **0.1.0-alpha.68**, **versionCode 68**.
+Versão atual: **0.1.0-alpha.69**, **versionCode 69**.
 
 Cada alteração no projeto deve aumentar sequencialmente o `versionCode` e o `versionName`, além de sincronizar README, CHANGELOG, RELEASE_NOTES e documentação de validação.
 
@@ -51,3 +51,5 @@ Alpha.66: corrigida fixture Android de Carregamento Elétrico em `RoomMigrationT
 Alpha.67: Solar e carregamento elétrico podem finalizar automaticamente em uma leitura nova de 100%, com opção salva em Room v11 (10→11) e backup JSON v9. Próxima alpha.68 / 68.
 
 Alpha.68: AndroidManifest declara camera/autofoco opcionais para QR no Labs; resolucao do Lint do workflow 48, preservando medicoes, Room v11, backup v9 e finalizacao em 100%. Proxima alpha.69 / 69.
+
+Alpha.69: Labs remoto v2 (scanner em janela vertical, seleção de função, dois tipos de carga, sessão autorizada e revogável). Room v11/backup v9 preservados. Próxima alpha.70 / 70.

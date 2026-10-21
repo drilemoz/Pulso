@@ -10,13 +10,14 @@ import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
-import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.*
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -40,8 +41,6 @@ import br.com.pulsobateria.labs.RemoteRole
 import br.com.pulsobateria.labs.RemoteSnapshot
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.qrcode.QRCodeWriter
-import com.journeyapps.barcodescanner.ScanContract
-import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.delay
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -88,18 +87,24 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
  var notes by rememberSaveable { mutableStateOf("") }
  var conditionsExpanded by rememberSaveable { mutableStateOf(false) }
  var showHostQr by rememberSaveable { mutableStateOf(false) }
+ var showRoleChoice by rememberSaveable { mutableStateOf(false) }
+ var confirmSwitchRole by rememberSaveable { mutableStateOf(false) }
+ var showScanner by rememberSaveable { mutableStateOf(false) }
+ var confirmStopRemote by rememberSaveable { mutableStateOf(false) }
+ var confirmRenewQr by rememberSaveable { mutableStateOf(false) }
  var showRemoteStart by rememberSaveable { mutableStateOf(false) }
  var remoteSky by rememberSaveable { mutableStateOf("nublado") }
+ var remoteKind by rememberSaveable { mutableStateOf("SOLAR") }
  var remotePanel by rememberSaveable { mutableStateOf("8") }
+ var remoteCustomPanel by rememberSaveable { mutableStateOf("") }
  var remoteDuration by rememberSaveable { mutableStateOf("120") }
- val scanLauncher = rememberLauncherForActivityResult(ScanContract()) { result ->
-  result.contents?.takeIf { it.isNotBlank() }?.let(vm::connectRemote)
- }
+ var remoteCustomMinutes by rememberSaveable { mutableStateOf("") }
+ var remoteStopAtFull by rememberSaveable { mutableStateOf(true) }
  var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
  var hadActive by rememberSaveable { mutableStateOf(false) }
  LaunchedEffect(active?.id) {
   if(active!=null) hadActive=true
-  else if(hadActive) { page="home"; hadActive=false }
+  else if(hadActive) { if(page!="remote") page="home"; hadActive=false }
   if(active!=null) lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
    while(true) { now=System.currentTimeMillis(); delay(1000L) }
   }
@@ -120,7 +125,7 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
  LazyColumn(Modifier.fillMaxSize(),
   contentPadding=PaddingValues(start=16.dp,top=10.dp,end=16.dp,bottom=if(isConfigPage) 108.dp else 24.dp),
   verticalArrangement=Arrangement.spacedBy(12.dp)) {
-  if(active!=null) {
+  if(active!=null && page!="remote") {
    item { RunningLabCard(active!!,now,vm) }
    item { Text("Leituras dependem do Android e do monitoramento ativo; intervalos sem observação são separados.",
     style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant) }
@@ -132,7 +137,7 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
     item { LabMenuCard("🔌","Carregamento Elétrico","Recarga pela rede elétrica: bateria, temperatura e corrente.") { stopAtFull=true; page="electric" } }
     item { LabMenuCard("🔋","Teste de Consumo","Queda observada da bateria, sem fonte externa.") { page="discharge" } }
     item { LabMenuCard("📊","Comparar testes solares","Compare dois testes concluídos sem inventar medições.") { page="compare" } }
-    item { LabMenuCard("📡","Monitoramento remoto","QR Code, rede local e início remoto do teste solar.") { page="remote" } }
+    item { LabMenuCard("📡","Monitoramento remoto","Visualize e controle testes solares ou elétricos pela rede local.") { page="remote"; showRoleChoice=remoteUi.role==RemoteRole.IDLE } }
     item {
      Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
       Text("Últimos testes",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold)
@@ -290,57 +295,74 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
    "remote" -> {
     item { TextButton(onClick={page="home"}) { Text("‹ Voltar ao Labs") } }
     item {
-     Column(verticalArrangement=Arrangement.spacedBy(4.dp)) {
-      Text("☀️ Labs → Monitoramento remoto", style=MaterialTheme.typography.titleLarge, fontWeight=FontWeight.SemiBold)
-      Text("Use um celular conectado ao painel solar para monitorar e outro para controlar e visualizar pela mesma rede Wi‑Fi.", style=MaterialTheme.typography.bodySmall, color=MaterialTheme.colorScheme.onSurfaceVariant)
+     Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically,
+      horizontalArrangement=Arrangement.SpaceBetween) {
+      Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(4.dp)) {
+       Text("📡 Monitoramento remoto",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.SemiBold)
+       Text("Controle solar e elétrico pelo Wi-Fi local, sem internet.",style=MaterialTheme.typography.bodySmall,
+        color=MaterialTheme.colorScheme.onSurfaceVariant)
+      }
+      TextButton(onClick={confirmSwitchRole=true}) { Text("Trocar função") }
      }
     }
-    item {
+    if(remoteUi.role==RemoteRole.IDLE) item {
      RemoteGatewayRow(
-      onGenerate = { onMonitor(true); vm.startRemoteHosting(); showHostQr = true },
-      onScan = {
-       val options = ScanOptions().apply {
-        setDesiredBarcodeFormats(ScanOptions.QR_CODE)
-        setPrompt("Escaneie o QR Code do celular monitorado")
-        setBeepEnabled(false)
-        setOrientationLocked(false)
-       }
-       scanLauncher.launch(options)
-      }
+      onGenerate={onMonitor(true);vm.startRemoteHosting();showHostQr=true},
+      onScan={showScanner=true}
      )
     }
-    item {
-     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-      Text("📶  Conexão Wi‑Fi local, sem internet", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    if(remoteUi.role==RemoteRole.HOST) {
+     item {
+      LabPanel("Este celular será monitorado") {
+       Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,
+        horizontalArrangement=Arrangement.SpaceBetween) {
+        Text("📱 ${android.os.Build.MODEL ?: "Celular monitorado"}",style=MaterialTheme.typography.titleMedium,
+         fontWeight=FontWeight.SemiBold,modifier=Modifier.weight(1f))
+        Surface(shape=RoundedCornerShape(24.dp),color=if(remoteUi.connected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant) {
+         Text(if(remoteUi.connected) "Conectado" else "Aguardando",modifier=Modifier.padding(horizontal=12.dp,vertical=6.dp),
+          color=if(remoteUi.connected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+       }
+       if(remoteUi.connectedDevice!=null) {
+        Text("Acessado por: ${remoteUi.connectedDevice}",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold)
+        Text("Nome informado pelo outro aparelho; não representa identidade certificada.",
+         style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(if(remoteUi.connected) "Este aparelho está compartilhando as leituras com o controlador." else
+         "O controlador perdeu a conexão; uma sessão autorizada pode se reconectar.",style=MaterialTheme.typography.bodySmall)
+       }
+       if(remoteUi.hostEndpoint!=null) {
+        Text("QR Code disponível para pareamento. Expira em 5 minutos e funciona uma única vez.",
+         style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        Button(onClick={showHostQr=true},modifier=Modifier.fillMaxWidth()) { Text("Mostrar QR Code") }
+       }
+       if(remoteUi.connectedDevice!=null) {
+        OutlinedButton(onClick=vm::revokeRemoteAccess,modifier=Modifier.fillMaxWidth(),
+         colors=ButtonDefaults.outlinedButtonColors(contentColor=MaterialTheme.colorScheme.error)) {
+         Text("Encerrar acesso remoto")
+        }
+       }
+       OutlinedButton(onClick={if(remoteUi.connectedDevice!=null) confirmRenewQr=true else {vm.regenerateRemoteQr();showHostQr=true}},
+        modifier=Modifier.fillMaxWidth()) { Text("Gerar novo QR Code") }
+       TextButton(onClick={vm.stopRemoteHosting()},modifier=Modifier.align(Alignment.End)) { Text("Desativar compartilhamento") }
+      }
      }
+    }
+    if(remoteUi.role==RemoteRole.CONTROLLER && remoteUi.controllerEndpoint!=null) item {
+     RemoteMonitorCard(snapshot=remoteUi.snapshot, connected=remoteUi.connected,
+      deviceName=remoteUi.controllerEndpoint!!.deviceName,
+      onStart={showRemoteStart=true},onStop={confirmStopRemote=true},onDisconnect=vm::disconnectRemote)
     }
     if(remoteUi.statusMessage.isNotBlank()) item {
-     Surface(shape=RoundedCornerShape(14.dp), color=MaterialTheme.colorScheme.surfaceVariant) {
-      Text(remoteUi.statusMessage, modifier=Modifier.fillMaxWidth().padding(12.dp), style=MaterialTheme.typography.bodySmall)
-     }
+     Text(remoteUi.statusMessage,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
     }
     if(remoteUi.actionMessage.isNotBlank()) item {
-     Text(remoteUi.actionMessage, style=MaterialTheme.typography.labelMedium, color=MaterialTheme.colorScheme.primary)
+     Text(remoteUi.actionMessage,style=MaterialTheme.typography.labelMedium,color=MaterialTheme.colorScheme.primary)
     }
-    if(remoteUi.role == RemoteRole.HOST && remoteUi.hostEndpoint != null) item {
-     LabPanel("Celular A · conectado ao painel solar") {
-      Text(remoteUi.hostEndpoint!!.deviceName, style=MaterialTheme.typography.titleMedium, fontWeight=FontWeight.SemiBold)
-      Text("Pareamento ativo em ${remoteUi.hostEndpoint!!.host}:${remoteUi.hostEndpoint!!.port}", style=MaterialTheme.typography.bodySmall, color=MaterialTheme.colorScheme.onSurfaceVariant)
-      Row(horizontalArrangement=Arrangement.spacedBy(8.dp), modifier=Modifier.fillMaxWidth()) {
-       Button(onClick={showHostQr=true}, modifier=Modifier.weight(1f)) { Text("Mostrar QR Code") }
-       OutlinedButton(onClick={vm.stopRemoteHosting()}, modifier=Modifier.weight(1f)) { Text("Parar") }
-      }
+    item {
+     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.Center) {
+      Text("📶  Conexão Wi-Fi local · sem internet",style=MaterialTheme.typography.bodySmall,
+       color=MaterialTheme.colorScheme.onSurfaceVariant)
      }
-    }
-    if(remoteUi.role == RemoteRole.CONTROLLER && remoteUi.controllerEndpoint != null) item {
-     RemoteMonitorCard(
-      snapshot = remoteUi.snapshot,
-      connected = remoteUi.connected,
-      deviceName = remoteUi.controllerEndpoint!!.deviceName,
-      onStart = { showRemoteStart = true },
-      onStop = vm::stopRemoteLab,
-      onDisconnect = vm::disconnectRemote,
-     )
     }
    }
    "compare" -> {
@@ -422,14 +444,45 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
    }
   }
  }
- if(showHostQr && remoteUi.hostEndpoint != null) {
-  RemoteQrDialog(payload = remoteUi.hostEndpoint!!.toQrPayload(), deviceName = remoteUi.hostEndpoint!!.deviceName, onClose = { showHostQr = false }, onStop = vm::stopRemoteHosting)
+ if(showRoleChoice && page=="remote" && remoteUi.role==RemoteRole.IDLE) {
+  RemoteRoleChoiceDialog(onMonitored={showRoleChoice=false;onMonitor(true);vm.startRemoteHosting();showHostQr=true},
+   onControl={showRoleChoice=false;showScanner=true},onClose={showRoleChoice=false})
  }
+ if(showScanner) RemoteQrScannerDialog(onScanned={showScanner=false;vm.connectRemote(it)},onClose={showScanner=false})
+ if(showHostQr && remoteUi.hostEndpoint!=null) {
+  RemoteQrDialog(payload=remoteUi.hostEndpoint!!.toQrPayload(), deviceName=remoteUi.hostEndpoint!!.deviceName,
+   onClose={showHostQr=false},onStop={showHostQr=false;vm.stopRemoteHosting()})
+ }
+ if(confirmSwitchRole) AlertDialog(onDismissRequest={confirmSwitchRole=false},
+  title={Text("Trocar a função deste aparelho?")},
+  text={Text("A conexão remota atual será encerrada. Um teste de bateria em andamento continuará normalmente no aparelho monitorado.")},
+  confirmButton={TextButton(onClick={
+   confirmSwitchRole=false;showHostQr=false;showScanner=false
+   if(remoteUi.role==RemoteRole.HOST) vm.stopRemoteHosting()
+   if(remoteUi.role==RemoteRole.CONTROLLER) vm.disconnectRemote()
+   showRoleChoice=true
+  }) { Text("Trocar função") }},
+  dismissButton={TextButton(onClick={confirmSwitchRole=false}) { Text("Cancelar") }})
+ if(confirmRenewQr) AlertDialog(onDismissRequest={confirmRenewQr=false},
+  title={Text("Gerar um novo QR Code?")},
+  text={Text("Isso revogará imediatamente o controlador atual. Qualquer teste já iniciado continuará normalmente.")},
+  confirmButton={TextButton(onClick={confirmRenewQr=false;vm.regenerateRemoteQr();showHostQr=true}){Text("Gerar novo QR")}},
+  dismissButton={TextButton(onClick={confirmRenewQr=false}){Text("Cancelar")}})
+ if(confirmStopRemote) AlertDialog(onDismissRequest={confirmStopRemote=false},
+  title={Text("Finalizar teste remoto?")},text={Text("O relatório será salvo no celular monitorado.")},
+  confirmButton={TextButton(onClick={confirmStopRemote=false;vm.stopRemoteLab()}) { Text("Finalizar") }},
+  dismissButton={TextButton(onClick={confirmStopRemote=false}) { Text("Cancelar") }})
  if(showRemoteStart) {
-  RemoteStartDialog(sky = remoteSky, onSky = { remoteSky = it }, panel = remotePanel, onPanel = { remotePanel = it }, duration = remoteDuration, onDuration = { remoteDuration = it }, onStart = {
-   showRemoteStart = false
-   vm.startRemoteSolar(remoteSky, remotePanel.toIntOrNull(), remoteDuration.toIntOrNull())
-  }, onClose = { showRemoteStart = false })
+  RemoteStartDialog(kind=remoteKind,onKind={remoteKind=it},sky=remoteSky,onSky={remoteSky=it},
+   panel=remotePanel,onPanel={remotePanel=it},customPanel=remoteCustomPanel,onCustomPanel={remoteCustomPanel=it},
+   duration=remoteDuration,onDuration={remoteDuration=it},customMinutes=remoteCustomMinutes,
+   onCustomMinutes={remoteCustomMinutes=it},stopAtFull=remoteStopAtFull,onStopAtFull={remoteStopAtFull=it},
+   onStart={
+    showRemoteStart=false
+    val watts=if(remotePanel=="other") remoteCustomPanel.toIntOrNull() else remotePanel.toIntOrNull()
+    val minutes=when(remoteDuration) { "manual" -> null; "other" -> remoteCustomMinutes.toIntOrNull();else -> remoteDuration.toIntOrNull() }
+    vm.startRemoteLab(remoteKind,remoteSky,watts,minutes,remoteStopAtFull)
+   },onClose={showRemoteStart=false})
  }
  }
 }
@@ -836,7 +889,7 @@ private fun LabResultRow(label: String,value: String) {
 @Composable
 private fun RemoteGatewayRow(onGenerate: () -> Unit, onScan: () -> Unit) {
  Row(horizontalArrangement=Arrangement.spacedBy(12.dp), modifier=Modifier.fillMaxWidth()) {
-  RemoteGatewayCard(title="Celular A", subtitle="Conectado ao painel solar", action="Gerar QR Code", symbol="📱", modifier=Modifier.weight(1f), onClick=onGenerate)
+  RemoteGatewayCard(title="Celular A", subtitle="Recebe energia e registra o teste", action="Gerar QR Code", symbol="📱", modifier=Modifier.weight(1f), onClick=onGenerate)
   RemoteGatewayCard(title="Celular B", subtitle="Controle e visualização", action="Escanear QR Code", symbol="📲", modifier=Modifier.weight(1f), onClick=onScan)
  }
 }
@@ -854,42 +907,122 @@ private fun RemoteGatewayCard(title: String, subtitle: String, action: String, s
 }
 
 @Composable
-private fun RemoteMonitorCard(snapshot: RemoteSnapshot?, connected: Boolean, deviceName: String, onStart: () -> Unit, onStop: () -> Unit, onDisconnect: () -> Unit) {
- Card(shape=RoundedCornerShape(28.dp), colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface), border=BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) {
-  Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement=Arrangement.spacedBy(14.dp)) {
-   Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.SpaceBetween) {
-    Row(verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-     Text("📱", style=MaterialTheme.typography.titleLarge)
-     Text(deviceName, style=MaterialTheme.typography.headlineSmall, fontWeight=FontWeight.Bold)
-    }
-    Surface(shape=RoundedCornerShape(30.dp), color=if(connected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant) {
-     Text(if(connected) "Conectado" else "Desconectado", modifier=Modifier.padding(horizontal=14.dp, vertical=8.dp), color=if(connected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight=FontWeight.SemiBold)
-    }
-   }
-   Text(if(connected) "Leituras recebidas do Android no outro celular." else "Sem conexão. Leituras indisponíveis.", style=MaterialTheme.typography.bodyMedium, color=MaterialTheme.colorScheme.onSurfaceVariant)
-   Row(horizontalArrangement=Arrangement.spacedBy(12.dp), modifier=Modifier.fillMaxWidth()) {
-    RemoteMetricCard("Bateria", snapshot?.batteryPercent?.let { "$it%" } ?: "--", progress = (snapshot?.batteryPercent ?: 0).coerceIn(0,100) / 100f, modifier=Modifier.weight(1f))
-    RemoteMetricCard("Corrente líquida", snapshot?.currentMa?.let { "${if(it>=0) "+" else ""}${it.roundToInt()}" } ?: "--", suffix = "mA", modifier=Modifier.weight(1f))
-   }
-   Row(horizontalArrangement=Arrangement.spacedBy(12.dp), modifier=Modifier.fillMaxWidth()) {
-    RemoteMetricCard("Temperatura", snapshot?.temperatureC?.let { "%.1f°C".format(Locale.getDefault(), it) } ?: "--", modifier=Modifier.weight(1f))
-    RemoteMetricCard("Tempo de teste", if((snapshot?.testElapsedMs ?: 0L) > 0L) duration(snapshot?.testElapsedMs ?: 0L) else "00:00:00", modifier=Modifier.weight(1f))
-   }
-   Card(shape=RoundedCornerShape(24.dp), colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surfaceVariant)) {
-    Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement=Arrangement.spacedBy(10.dp)) {
-     Row(Modifier.fillMaxWidth(), verticalAlignment=Alignment.CenterVertically, horizontalArrangement=Arrangement.SpaceBetween) {
-      Text("Teste Solar", style=MaterialTheme.typography.headlineSmall, fontWeight=FontWeight.Bold)
-      Text(if(snapshot?.testRunning == true) "Em andamento" else "Aguardando", color=if(snapshot?.testRunning == true) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight=FontWeight.SemiBold)
+private fun RemoteRoleChoiceDialog(onMonitored: () -> Unit, onControl: () -> Unit, onClose: () -> Unit) {
+ AlertDialog(onDismissRequest=onClose,
+  title={Column(verticalArrangement=Arrangement.spacedBy(6.dp)) {
+   Text("📡 Monitoramento remoto",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.SemiBold)
+   Text("Como deseja usar este celular?",style=MaterialTheme.typography.titleMedium)
+  }},
+  text={Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
+   Card(onClick=onMonitored,shape=RoundedCornerShape(20.dp),
+    colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surfaceVariant)) {
+    Row(Modifier.fillMaxWidth().padding(16.dp),verticalAlignment=Alignment.CenterVertically,
+     horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+     Text("📱",style=MaterialTheme.typography.headlineMedium)
+     Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)) {
+      Text("Ser monitorado",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold)
+      Text("Compartilhar leituras e aceitar controle de testes neste aparelho.",style=MaterialTheme.typography.bodySmall)
      }
-     RemoteStatusRow("Carregando", duration(snapshot?.chargingMs ?: 0L))
-     RemoteStatusRow("Sem carregamento", duration(snapshot?.notChargingMs ?: 0L))
-     RemoteStatusRow("Sem leitura", duration(snapshot?.unknownMs ?: 0L))
+     Text("›",style=MaterialTheme.typography.headlineMedium)
     }
    }
-   OutlinedButton(enabled=connected, onClick={ if(snapshot?.testRunning == true) onStop() else onStart() }, modifier=Modifier.fillMaxWidth().heightIn(min=56.dp), shape=RoundedCornerShape(18.dp), colors=ButtonDefaults.outlinedButtonColors(contentColor=if(snapshot?.testRunning == true) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)) {
-    Text(if(snapshot?.testRunning == true) "Finalizar teste remoto" else "Iniciar teste solar remoto", style=MaterialTheme.typography.titleMedium)
+   Card(onClick=onControl,shape=RoundedCornerShape(20.dp),
+    colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surfaceVariant)) {
+    Row(Modifier.fillMaxWidth().padding(16.dp),verticalAlignment=Alignment.CenterVertically,
+     horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+     Text("📲",style=MaterialTheme.typography.headlineMedium)
+     Column(Modifier.weight(1f),verticalArrangement=Arrangement.spacedBy(3.dp)) {
+      Text("Monitorar outro celular",style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold)
+      Text("Escanear QR Code e acompanhar o carregamento por Wi-Fi.",style=MaterialTheme.typography.bodySmall)
+     }
+     Text("›",style=MaterialTheme.typography.headlineMedium)
+    }
    }
-   TextButton(onClick=onDisconnect, modifier=Modifier.align(Alignment.End)) { Text("Desconectar") }
+  }},
+  confirmButton={TextButton(onClick=onClose){Text("Depois")}})
+}
+
+@Composable
+private fun RemoteMonitorCard(snapshot: RemoteSnapshot?, connected: Boolean, deviceName: String, onStart: () -> Unit, onStop: () -> Unit, onDisconnect: () -> Unit) {
+ val type=when(snapshot?.activeKind) {
+  "SOLAR" -> "☀️ Teste Solar"
+  "ELECTRIC" -> "🔌 Carregamento Elétrico"
+  "DISCHARGE" -> "🔋 Teste de Consumo"
+  else -> "Nenhum teste ativo"
+ }
+ val status=when {
+  snapshot==null -> "Sem dados"
+  snapshot.testRunning -> "Em andamento"
+  snapshot.activeStatus=="FULL" -> "Finalizado aos 100%"
+  snapshot.activeStatus=="COMPLETED" -> "Prazo concluído"
+  snapshot.activeStatus=="STOPPED" -> "Finalizado manualmente"
+  else -> "Aguardando"
+ }
+ Card(shape=RoundedCornerShape(28.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surface),
+  border=BorderStroke(1.dp,MaterialTheme.colorScheme.outlineVariant)) {
+  Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(12.dp)) {
+   Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,
+    horizontalArrangement=Arrangement.SpaceBetween) {
+    Column(Modifier.weight(1f)) {
+     Text("📱 $deviceName",style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.Bold)
+     Text("Celular monitorado",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    Surface(shape=RoundedCornerShape(30.dp),color=if(connected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceVariant) {
+     Text(if(connected) "Conectado" else "Desconectado",modifier=Modifier.padding(horizontal=12.dp,vertical=6.dp),
+      color=if(connected) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+   }
+   Text(if(connected) "Dados recebidos do Android no outro celular. Valores ausentes são indicados por --."
+    else "Conexão perdida. Não são mostradas leituras antigas.",style=MaterialTheme.typography.bodySmall,
+    color=MaterialTheme.colorScheme.onSurfaceVariant)
+   Row(horizontalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.fillMaxWidth()) {
+    RemoteMetricCard("Bateria",snapshot?.batteryPercent?.let { "$it%" } ?: "--",
+     progress=snapshot?.batteryPercent?.div(100f),modifier=Modifier.weight(1f))
+    RemoteMetricCard("Corrente líquida",snapshot?.currentMa?.let { "${if(it>=0) "+" else ""}${it.roundToInt()}" } ?: "--",
+     suffix="mA",modifier=Modifier.weight(1f))
+   }
+   Row(horizontalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.fillMaxWidth()) {
+    RemoteMetricCard("Temperatura",snapshot?.temperatureC?.let { "%.1f°C".format(Locale.getDefault(),it) } ?: "--",
+     modifier=Modifier.weight(1f))
+    RemoteMetricCard("Tempo de teste",snapshot?.let { if(it.activeId!=null) duration(it.testElapsedMs) else "--" } ?: "--",
+     modifier=Modifier.weight(1f))
+   }
+   Card(shape=RoundedCornerShape(20.dp),colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surfaceVariant)) {
+    Column(Modifier.fillMaxWidth().padding(14.dp),verticalArrangement=Arrangement.spacedBy(8.dp)) {
+     Row(Modifier.fillMaxWidth(),verticalAlignment=Alignment.CenterVertically,
+      horizontalArrangement=Arrangement.SpaceBetween) {
+      Text(type,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.Bold,modifier=Modifier.weight(1f))
+      Text(status,style=MaterialTheme.typography.labelMedium,
+       color=if(snapshot?.testRunning==true) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.onSurfaceVariant)
+     }
+     if(snapshot?.activeId!=null) {
+      RemoteStatusRow("Bateria inicial",snapshot.initialPercent?.let { "$it%" } ?: "--")
+      RemoteStatusRow("Bateria final / última",snapshot.finalPercent?.let { "$it%" } ?: "--")
+      RemoteStatusRow("Temperatura inicial",temperatureText(snapshot.initialTemperatureC))
+      RemoteStatusRow("Temperatura média",temperatureText(snapshot.meanTemperatureC))
+      RemoteStatusRow("Temperatura final/última",temperatureText(snapshot.finalTemperatureC))
+      RemoteStatusRow("Temperatura máxima",temperatureText(snapshot.maxTemperatureC))
+      if(snapshot.activeKind=="ELECTRIC") RemoteStatusRow("Fonte detectada",snapshot.electricSource ?: "Indisponível")
+      if(snapshot.targetMs!=null && snapshot.testRunning) RemoteStatusRow("Prazo restante",duration((snapshot.targetMs-snapshot.testElapsedMs).coerceAtLeast(0L)))
+      RemoteStatusRow("Finalizar aos 100%",if(snapshot.stopAtFull) "Ativo" else "Desativado")
+      HorizontalDivider()
+      RemoteStatusRow("Carregando",duration(snapshot.chargingMs))
+      RemoteStatusRow("Sem carregamento",duration(snapshot.notChargingMs))
+      RemoteStatusRow("Sem leitura",duration(snapshot.unknownMs))
+      if(!snapshot.testRunning) Text("Resumo salvo no celular monitorado.",style=MaterialTheme.typography.bodySmall,
+       color=MaterialTheme.colorScheme.onSurfaceVariant)
+     }
+    }
+   }
+   OutlinedButton(enabled=connected && (snapshot?.activeKind in listOf("SOLAR","ELECTRIC") || snapshot?.testRunning!=true),
+    onClick={if(snapshot?.testRunning==true) onStop() else onStart()},
+    modifier=Modifier.fillMaxWidth().heightIn(min=52.dp),shape=RoundedCornerShape(16.dp),
+    colors=ButtonDefaults.outlinedButtonColors(contentColor=if(snapshot?.testRunning==true)
+     MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary)) {
+    Text(if(snapshot?.testRunning==true) "Finalizar teste remoto" else "Iniciar teste remoto",
+     style=MaterialTheme.typography.titleMedium)
+   }
+   TextButton(onClick=onDisconnect,modifier=Modifier.align(Alignment.End)) { Text("Desconectar") }
   }
  }
 }
@@ -899,7 +1032,7 @@ private fun RemoteMetricCard(title: String, value: String, suffix: String = "", 
  Card(modifier=modifier, shape=RoundedCornerShape(24.dp), colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surfaceVariant)) {
   Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement=Arrangement.spacedBy(10.dp)) {
    Text(title, style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurfaceVariant)
-   Text(value, style=MaterialTheme.typography.displaySmall, fontWeight=FontWeight.Bold)
+   Text(value, style=MaterialTheme.typography.headlineMedium, fontWeight=FontWeight.Bold)
    if(suffix.isNotBlank()) Text(suffix, style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurfaceVariant)
    if(progress != null) {
     LinearProgressIndicator(progress={ progress.coerceIn(0f,1f) }, modifier=Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(20.dp)), color=MaterialTheme.colorScheme.secondary, trackColor=MaterialTheme.colorScheme.outlineVariant)
@@ -911,8 +1044,9 @@ private fun RemoteMetricCard(title: String, value: String, suffix: String = "", 
 @Composable
 private fun RemoteStatusRow(label: String, value: String) {
  Row(Modifier.fillMaxWidth(), horizontalArrangement=Arrangement.SpaceBetween, verticalAlignment=Alignment.CenterVertically) {
-  Text(label, style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurfaceVariant)
-  Text(value, style=MaterialTheme.typography.headlineSmall)
+  Text(label, style=MaterialTheme.typography.bodySmall, color=MaterialTheme.colorScheme.onSurfaceVariant,
+   modifier=Modifier.weight(1f))
+  Text(value, style=MaterialTheme.typography.bodyMedium, fontWeight=FontWeight.SemiBold)
  }
 }
 
@@ -925,7 +1059,7 @@ private fun RemoteQrDialog(payload: String, deviceName: String, onClose: () -> U
   text={ Column(verticalArrangement=Arrangement.spacedBy(12.dp), horizontalAlignment=Alignment.CenterHorizontally) {
    Text("Escaneie este QR Code no outro celular, usando a mesma rede Wi‑Fi.")
    if(bitmap != null) Image(bitmap=bitmap.asImageBitmap(), contentDescription="QR Code do monitoramento remoto", modifier=Modifier.size(220.dp))
-   Text(payload, style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurfaceVariant)
+   Text("Código temporário: não compartilhe com terceiros.", style=MaterialTheme.typography.labelSmall, color=MaterialTheme.colorScheme.onSurfaceVariant)
   } },
   confirmButton={ TextButton(onClick={
    val clipboard=context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
@@ -939,27 +1073,62 @@ private fun RemoteQrDialog(payload: String, deviceName: String, onClose: () -> U
 }
 
 @Composable
-private fun RemoteStartDialog(sky: String, onSky: (String) -> Unit, panel: String, onPanel: (String) -> Unit, duration: String, onDuration: (String) -> Unit, onStart: () -> Unit, onClose: () -> Unit) {
+private fun RemoteStartDialog(kind: String,onKind: (String)->Unit,sky: String,onSky: (String)->Unit,
+ panel: String,onPanel: (String)->Unit,customPanel: String,onCustomPanel: (String)->Unit,
+ duration: String,onDuration: (String)->Unit,customMinutes: String,onCustomMinutes: (String)->Unit,
+ stopAtFull: Boolean,onStopAtFull: (Boolean)->Unit,onStart: ()->Unit,onClose: ()->Unit) {
+ val watts=if(panel=="other") customPanel.toIntOrNull() else panel.toIntOrNull()
+ val minutes=if(duration=="manual") null else if(duration=="other") customMinutes.toIntOrNull() else duration.toIntOrNull()
+ val valid=(kind=="ELECTRIC" || (watts!=null && watts in 1..200)) &&
+  (duration=="manual" || (minutes!=null && minutes in 1..1440))
  AlertDialog(onDismissRequest=onClose,
-  title={ Text("Iniciar teste solar remoto") },
-  text={ Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
-   Text("Escolha uma configuração simples para o teste no celular monitorado.")
-   Text("O teste solar remoto também terminará automaticamente ao atingir 100% (configuração padrão).", style=MaterialTheme.typography.bodySmall, color=MaterialTheme.colorScheme.onSurfaceVariant)
-   Text("Condição do céu", style=MaterialTheme.typography.titleSmall, fontWeight=FontWeight.SemiBold)
-   Row(horizontalArrangement=Arrangement.spacedBy(6.dp), modifier=Modifier.fillMaxWidth()) {
-    skyOptions.forEach { option -> LabChoice(option.emoji, sky == option.key, Modifier.weight(1f)) { onSky(option.key) } }
+  title={Text("Iniciar teste remoto")},
+  text={Column(Modifier.heightIn(max=480.dp).verticalScroll(rememberScrollState()),
+   verticalArrangement=Arrangement.spacedBy(12.dp)) {
+   Text("Escolha o experimento para executar no celular monitorado.",style=MaterialTheme.typography.bodySmall)
+   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+    LabChoice("☀️ Solar",kind=="SOLAR",Modifier.weight(1f)){onKind("SOLAR")}
+    LabChoice("🔌 Elétrico",kind=="ELECTRIC",Modifier.weight(1f)){onKind("ELECTRIC")}
    }
-   Text("Painel", style=MaterialTheme.typography.titleSmall, fontWeight=FontWeight.SemiBold)
-   Row(horizontalArrangement=Arrangement.spacedBy(8.dp), modifier=Modifier.fillMaxWidth()) {
-    listOf("8" to "8 W", "20" to "20 W").forEach { (value,title) -> LabChoice(title, panel == value, Modifier.weight(1f)) { onPanel(value) } }
+   if(kind=="SOLAR") {
+    Text("Condição do céu",style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.SemiBold)
+    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+     skyOptions.forEach { choice -> LabChoice(choice.emoji,sky==choice.key,Modifier.weight(1f)){onSky(choice.key)} }
+    }
+    Text("Potência anunciada do painel",style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.SemiBold)
+    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(8.dp)) {
+     listOf("8" to "8 W","20" to "20 W","other" to "Outro").forEach { (value,label) ->
+      LabChoice(label,panel==value,Modifier.weight(1f)){onPanel(value)}
+     }
+    }
+    if(panel=="other") OutlinedTextField(value=customPanel,onValueChange={onCustomPanel(it.filter(Char::isDigit).take(3))},
+     label={Text("Potência em W (1 a 200)")},singleLine=true,
+     keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number),modifier=Modifier.fillMaxWidth())
+   } else Text("A fonte será identificada pelo Android. USB também pode ser painel ou power bank.",
+    style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+   Text("Duração",style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.SemiBold)
+   listOf(listOf("30" to "30 min","60" to "1 hora","120" to "2 horas"),
+    listOf("240" to "4 horas","manual" to "Manual","other" to "Outro")).forEach { row ->
+    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
+     row.forEach { (value,label) -> LabChoice(label,duration==value,Modifier.weight(1f)){onDuration(value)} }
+    }
    }
-   Text("Duração", style=MaterialTheme.typography.titleSmall, fontWeight=FontWeight.SemiBold)
-   Row(horizontalArrangement=Arrangement.spacedBy(8.dp), modifier=Modifier.fillMaxWidth()) {
-    listOf("30" to "30 min", "60" to "1 h", "120" to "2 h").forEach { (value,title) -> LabChoice(title, duration == value, Modifier.weight(1f)) { onDuration(value) } }
+   if(duration=="other") OutlinedTextField(value=customMinutes,onValueChange={onCustomMinutes(it.filter(Char::isDigit).take(4))},
+    label={Text("Minutos (1 a 1440)")},singleLine=true,
+    keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number),modifier=Modifier.fillMaxWidth())
+   Row(Modifier.fillMaxWidth().clickable { onStopAtFull(!stopAtFull) },verticalAlignment=Alignment.CenterVertically) {
+    Checkbox(checked=stopAtFull,onCheckedChange=null)
+    Column {
+     Text("Finalizar ao atingir 100%",style=MaterialTheme.typography.bodyMedium,fontWeight=FontWeight.SemiBold)
+     Text("Ativado por padrão",style=MaterialTheme.typography.labelSmall,
+      color=MaterialTheme.colorScheme.onSurfaceVariant)
+    }
    }
-  } },
-  confirmButton={ TextButton(onClick=onStart) { Text("Iniciar") } },
-  dismissButton={ TextButton(onClick=onClose) { Text("Cancelar") } })
+   if(!valid) Text("Confira a potência ou duração informada.",color=MaterialTheme.colorScheme.error,
+    style=MaterialTheme.typography.labelSmall)
+  }},
+  confirmButton={TextButton(onClick=onStart,enabled=valid){Text("Iniciar teste")}},
+  dismissButton={TextButton(onClick=onClose){Text("Cancelar")}})
 }
 
 private fun buildQrBitmap(payload: String, size: Int = 900): Bitmap? = runCatching {

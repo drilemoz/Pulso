@@ -1,6 +1,16 @@
 # Pulso Bateria
 
-**0.1.0-alpha.68 • versionCode 68** — Android nativo, Kotlin e Jetpack Compose.
+**0.1.0-alpha.69 • versionCode 69** — Android nativo, Kotlin e Jetpack Compose.
+
+Guia de uso e limitações: [Monitoramento remoto LAN v2](docs/REMOTE_LABS.md).
+
+## Novidades da alpha.69
+
+- Monitoramento remoto agora abre escolha entre ser monitorado e monitorar outro aparelho, com troca de função explícita.
+- Leitor QR foi integrado à janela vertical do Labs, com permissão de câmera sob demanda e controle da lanterna.
+- Controle LAN passa a iniciar testes solares e elétricos, com duração, condições e finalização opcional aos 100%.
+- Aparelho monitorado identifica o nome informado pelo controlador, mostra notificação de acesso e permite revogar pela tela ou notificação.
+- O novo pareamento usa QR temporário de uso único e sessão separada para reconexão; relatório permanece no aparelho medido.
 
 ## Novidades da alpha.68
 

@@ -1,3 +1,11 @@
+## 0.1.0-alpha.69 (20/10/2026)
+
+- Monitoramento remoto agora abre escolha entre ser monitorado e monitorar outro aparelho, com troca de função explícita.
+- Leitor QR foi integrado à janela vertical do Labs, com permissão de câmera sob demanda e controle da lanterna.
+- Controle LAN passa a iniciar testes solares e elétricos, com duração, condições e finalização opcional aos 100%.
+- Aparelho monitorado identifica o nome informado pelo controlador, mostra notificação de acesso e permite revogar pela tela ou notificação.
+- O novo pareamento usa QR temporário de uso único e sessão separada para reconexão; relatório permanece no aparelho medido.
+
 ## 0.1.0-alpha.68 (20/10/2026)
 
 - Manifesto declara a câmera opcional para o leitor de QR Code do Labs, corrigindo o erro Android Lint do workflow 48.

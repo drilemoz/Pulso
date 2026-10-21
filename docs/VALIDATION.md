@@ -1,3 +1,13 @@
+# Validação 0.1.0-alpha.72 (20/10/2026)
+
+- A interface Solar, Elétrico e Consumo não exige mais duração; os três formulários enviam `minutes=null`, inclusive o remoto para Solar/Elétrico. A medição termina manualmente ou, em carga com opção ativa, na leitura nova de 100%. O modo AUTO mantém sua regra específica de desconexão.
+- O cartão em destaque usa `LabTimeForecast.fullAt`, função observacional anterior, para mostrar a hora aproximada aos 100% somente se houver evidência recente suficiente. O Consumo mostra encerramento manual, sem estimativa fictícia.
+- O painel remoto destaca a hora prevista dentro do cartão grande da bateria. Não há alteração de protocolo: ETA continua sendo calculado no aparelho monitorado e transmitido sem preenchimento artificial.
+- Testes antigos com `deadlineAt` continuam mostrando o prazo real nos detalhes, no histórico e no relatório. Room v11, backup JSON v9 e regras de telemetria não foram modificados.
+- Os contratos estáticos novos estão em `tools/test_labs_no_deadline_eta.py` (16 cenários); `tools/test_lab_timing_contract.py` foi adaptado à ausência de prazo de novas sessões. O cartão destacado informa também minutos/horas aproximadamente restantes, sem criar uma medição nova.
+- **Validações executadas nesta entrega:** 23 scripts `tools/test_*.py` aprovados (incluindo SQL, notícias e contratos LAN), `tools/validate_source.py`, `tools/check_release_news.py` e `tools/test_release_consistency.py` aprovados. `bash tools/run_external_labs_policy_test.sh`: 16 invariantes Kotlin/JVM; `bash tools/run_math_audit.sh`: 15 grupos de cálculo reais; analisados 84 arquivos Kotlin pelo parser PSI, nenhum erro sintático.
+- Tentativa de `./gradlew :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --offline --no-daemon`: **não iniciou**, pois a distribuição Gradle não pôde ser baixada de services.gradle.org. Não afirmar compilação APK nem aprovação do Lint da alpha.72. Build Android, teste no aparelho, cenários 100% e comunicação LAN real precisam de validação externa.
+
 # Validação 0.1.0-alpha.71 (20/10/2026)
 
 - Base: alpha.70. Mudanças limitadas ao fluxo remoto, modo AUTO e tipografia/layout dos dados. Room v11, backup JSON v9 e AIDL v1 preservados.

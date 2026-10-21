@@ -12,14 +12,14 @@ import br.com.pulsobateria.BuildConfig
 
 /** Alterações exclusivas do build atual. Atualizar obrigatoriamente em cada release. */
 internal object ReleaseNews {
- const val VERSION_NAME = "0.1.0-alpha.71"
- const val VERSION_CODE = 71
+ const val VERSION_NAME = "0.1.0-alpha.72"
+ const val VERSION_CODE = 72
  val ITEMS = listOf(
-  "Monitoramento remoto abre sem pop-up obrigatória: ações Ser monitorado e Monitorar outro celular ficam visíveis no topo do Labs.",
-  "Aparelhos recentes permite reconectar sem novo QR enquanto a autorização do monitorado continuar válida; credenciais locais são protegidas pelo AndroidKeyStore.",
-  "Carga automática inicia com um toque, sem prazo nem seleção de Solar/Elétrico, preservando a origem informada pelo Android sem atribuir a fonte incorretamente.",
-  "Carga automática finaliza ao atingir 100% ou após três minutos consecutivos de desconexão confirmada, mantendo relatório e lacunas observacionais.",
-  "Painel remoto destaca percentual, ganho na bateria e previsão, recolhendo temperaturas e outros detalhes técnicos sem ocultar os horários do teste.",
+  "Solar, Elétrico e Consumo começam sem selecionar duração; encerramento e duração efetiva continuam registrados no relatório.",
+  "A estimativa de término aos 100% ganha cartão grande no Labs local e destaque junto à bateria no painel remoto.",
+  "Sem progresso suficiente, a tela informa que aguarda medições; o Consumo mantém encerramento manual sem previsão inventada.",
+  "O formulário remoto deixa de pedir tempo e envia testes solares/elétricos sem prazo, preservando a finalização opcional aos 100%.",
+  "Testes com prazo de versões anteriores mantêm suas datas originais no histórico, sem alterar Room v11 ou backup JSON v9.",
  )
 }
 

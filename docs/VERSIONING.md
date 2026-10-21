@@ -1,6 +1,6 @@
 # Versionamento
 
-Versão atual: **0.1.0-alpha.71**, **versionCode 71**.
+Versão atual: **0.1.0-alpha.72**, **versionCode 72**.
 
 Cada alteração no projeto deve aumentar sequencialmente o `versionCode` e o `versionName`, além de sincronizar README, CHANGELOG, RELEASE_NOTES e documentação de validação.
 
@@ -57,3 +57,5 @@ Alpha.69: Labs remoto v2 (scanner em janela vertical, seleção de função, doi
 Alpha.70: horários reais do teste local/remoto; ETA para 100% exige cobertura observacional. Sem migrações Room/backup; próxima alpha.71 / 71.
 
 Alpha.71: interface remota sem pop-up inicial; recent devices com credencial de sessão cifrada no Android Keystore e revogação mantida. Carga AUTO usa leituras existentes, encerra em 100% ou 3 min desconectada após carga verificada; Room v11/backup JSON v9 sem migração. Próxima alpha.72 / 72.
+
+Alpha.72: Labs sem prazo obrigatório nos três experimentos; ETA de 100% destacado nas telas local e remota, com falta de evidência explícita. Preserva Room v11 e backup JSON v9. Próxima alpha.73 / 73.

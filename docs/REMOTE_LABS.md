@@ -34,3 +34,7 @@
 - **Fim automático:** nova leitura de 100% ou 3 minutos consecutivos de leituras sem fonte, após carga efetivamente constatada, respeitando lacunas máximas de 90 segundos entre amostras. Caso uma leitura falte, o relógio de desconexão reinicia; encerramento por desconexão pode atrasar se a coleta for interrompida. Também é possível finalizar manualmente.
 - **Interface:** bateria atual, ganho em pontos percentuais e previsão ganham destaque. Temperaturas e intervalos ficam recolhíveis. A projeção para 100% só aparece com evidência suficiente.
 - **Persistência:** o histórico e as condições finais de AUTO usam Room v11 e backup JSON v9 sem nova migração. Não habilita serviços extras e não desativa regras de economia do Android.
+
+## Alpha.72: testes sem prazo fixo e ETA destacado
+
+Ao configurar Solar ou Elétrico remotamente, não é mais obrigatório escolher duração. O controlador envia `minutes=null` e mantém seleção de céu/painel quando solar e a opção de finalizar aos 100%. O cartão principal do painel mostra a estimativa de hora de 100%, quando o celular monitorado informou evidência suficiente; caso contrário exibe **Aguardando medições**. Testes de Consumo locais seguem sem previsão até definir um ponto final confiável. A listagem de aparelhos recentes e o protocolo LAN v2 permanecem inalterados.

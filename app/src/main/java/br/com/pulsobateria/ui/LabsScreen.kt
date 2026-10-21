@@ -64,6 +64,15 @@ private fun duration(ms: Long): String {
 }
 private fun date(time: Long): String = SimpleDateFormat("dd/MM/yyyy HH:mm",Locale.getDefault()).format(Date(time))
 private fun dateCompact(time: Long): String = SimpleDateFormat("dd/MM HH:mm",Locale.getDefault()).format(Date(time))
+/** Duração restante aproximada, sem substituir a hora prevista nem completar dados ausentes. */
+private fun estimatedRemainingLabel(targetMs: Long, nowMs: Long): String? {
+ if(targetMs <= nowMs || nowMs <= 0L) return null
+ val delta = targetMs - nowMs
+ if(delta <= 0L || delta > 7L * 24L * 3_600_000L) return null
+ val minutes = (delta + 59_999L) / 60_000L
+ return if(minutes < 60) "Faltam cerca de $minutes min"
+  else "Faltam cerca de ${minutes / 60} h ${minutes % 60} min"
+}
 /** O arredondamento de exibição não altera a estimativa subjacente. */
 private fun estimatedFullLabel(targetMs: Long, nowMs: Long): String {
  val step = 300_000L
@@ -85,8 +94,6 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
  var sky by rememberSaveable { mutableStateOf("nublado") }
  var panel by rememberSaveable { mutableStateOf("8") }
  var customWatts by rememberSaveable { mutableStateOf("") }
- var timer by rememberSaveable { mutableStateOf("120") }
- var customMinutes by rememberSaveable { mutableStateOf("") }
  var stopAtFull by rememberSaveable { mutableStateOf(true) }
  // Condições declaradas pelo usuário; o Android não observa o estado de outros apps.
  var screenCondition by rememberSaveable { mutableStateOf("NAO_INFORMADA") }
@@ -105,8 +112,6 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
  var remoteKind by rememberSaveable { mutableStateOf("SOLAR") }
  var remotePanel by rememberSaveable { mutableStateOf("8") }
  var remoteCustomPanel by rememberSaveable { mutableStateOf("") }
- var remoteDuration by rememberSaveable { mutableStateOf("120") }
- var remoteCustomMinutes by rememberSaveable { mutableStateOf("") }
  var remoteStopAtFull by rememberSaveable { mutableStateOf(true) }
  var now by remember { mutableLongStateOf(System.currentTimeMillis()) }
  var hadActive by rememberSaveable { mutableStateOf(false) }
@@ -119,9 +124,7 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
  }
  BackHandler(enabled=active==null && page!="home") { page="home" }
  val selectedWatts=when(panel) { "other" -> customWatts.toIntOrNull(); else -> panel.toIntOrNull() }
- val selectedMinutes=when(timer) { "manual" -> null; "other" -> customMinutes.toIntOrNull(); else -> timer.toIntOrNull() }
  val validWatts=selectedWatts!=null && selectedWatts in 1..200
- val validDuration=timer=="manual" || selectedMinutes!=null && selectedMinutes in 1..1440
  val electricReady=reading.plugged==true && reading.mode.name in setOf("CHARGING", "FULL") &&
   reading.percent!=null && reading.updated in (System.currentTimeMillis()-90_000L)..System.currentTimeMillis()
  // Evita refiltrar todo o histórico a cada tick de atualização do cronômetro.
@@ -229,18 +232,9 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
      }
     }
     item {
-     LabPanel("Duração do teste") {
-      listOf(listOf("30" to "30 min","60" to "1 hora","120" to "2 horas"),
-       listOf("240" to "4 horas","manual" to "Manual","other" to "Outro")).forEach { row ->
-       Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {
-        row.forEach { (value,title) -> LabChoice(title,timer==value,Modifier.weight(1f)) { timer=value } }
-       }
-      }
-      if(timer=="other") OutlinedTextField(value=customMinutes,
-       onValueChange={customMinutes=it.filter(Char::isDigit).take(4)},
-       label={Text("Duração em minutos (1 a 1440)")},singleLine=true,
-       keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number),modifier=Modifier.fillMaxWidth())
-      Text(if(timer=="manual") "Você finaliza quando quiser." else "Término automático com relatório e notificação (sujeito às restrições do Android).",
+     LabPanel("Como o teste termina") {
+      Text(if(solar || electric) "A medição não tem prazo fixo. Termine quando quiser ou deixe a opção de finalizar aos 100% ativada. O histórico registra início, fim e duração reais."
+       else "A descarga é medida sem prazo fixo. Finalize quando desejar; o relatório registra a duração real e a queda da bateria.",
        style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
      }
     }
@@ -255,7 +249,7 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
          style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
        }
       }
-      Text("Vale também para testes manuais. Se houver um prazo, termina no primeiro evento: 100% observado ou prazo. O app não desliga o carregador.",
+      Text("O teste encerra ao receber uma leitura nova de 100%. A medição não possui prazo fixo e o app não desliga o carregador.",
        style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
      }
     }
@@ -432,8 +426,8 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
    color=MaterialTheme.colorScheme.background,shadowElevation=8.dp) {
    Column(Modifier.fillMaxWidth().padding(horizontal=16.dp,vertical=10.dp),
     verticalArrangement=Arrangement.spacedBy(4.dp)) {
-    if(!validDuration || (page=="solar" && !validWatts)) {
-     Text("Confira a duração e a potência informadas.",style=MaterialTheme.typography.labelSmall,
+    if(page=="solar" && !validWatts) {
+     Text("Confira a potência informada.",style=MaterialTheme.typography.labelSmall,
       color=MaterialTheme.colorScheme.error)
     }
     if(alreadyFull) Text("Bateria já está em 100%. Desative a finalização automática para iniciar.",
@@ -444,15 +438,15 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
     }
     Button(onClick={
      when(page) {
-      "solar" -> vm.startLab(sky,selectedWatts,selectedMinutes,
+      "solar" -> vm.startLab(sky,selectedWatts,null,
        screenCondition,cameraReported,wifiReported,recordingReported,notes,stopAtFull) { onMonitor(true) }
-      "electric" -> vm.startElectricLab(selectedMinutes,screenCondition,
+      "electric" -> vm.startElectricLab(null,screenCondition,
        cameraReported,wifiReported,recordingReported,notes,stopAtFull) { onMonitor(true) }
-      else -> vm.startDischargeLab(selectedMinutes,screenCondition,
+      else -> vm.startDischargeLab(null,screenCondition,
        cameraReported,wifiReported,recordingReported,notes) { onMonitor(true) }
      }
     },
-     enabled=!alreadyFull && validDuration && (page!="solar" || validWatts) && (page!="electric" || electricReady),
+     enabled=!alreadyFull && (page!="solar" || validWatts) && (page!="electric" || electricReady),
      modifier=Modifier.fillMaxWidth().heightIn(min=52.dp),
      shape=RoundedCornerShape(16.dp)) { Text(when(page) { "solar" -> "▶  Iniciar teste solar"; "electric" -> "▶  Iniciar carregamento elétrico"; else -> "▶  Iniciar teste de consumo" }) }
    }
@@ -484,13 +478,11 @@ fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Bo
  if(showRemoteStart) {
   RemoteStartDialog(kind=remoteKind,onKind={remoteKind=it},sky=remoteSky,onSky={remoteSky=it},
    panel=remotePanel,onPanel={remotePanel=it},customPanel=remoteCustomPanel,onCustomPanel={remoteCustomPanel=it},
-   duration=remoteDuration,onDuration={remoteDuration=it},customMinutes=remoteCustomMinutes,
-   onCustomMinutes={remoteCustomMinutes=it},stopAtFull=remoteStopAtFull,onStopAtFull={remoteStopAtFull=it},
+   stopAtFull=remoteStopAtFull,onStopAtFull={remoteStopAtFull=it},
    onStart={
     showRemoteStart=false
     val watts=if(remotePanel=="other") remoteCustomPanel.toIntOrNull() else remotePanel.toIntOrNull()
-    val minutes=if(remoteKind=="AUTO") null else when(remoteDuration) { "manual" -> null; "other" -> remoteCustomMinutes.toIntOrNull();else -> remoteDuration.toIntOrNull() }
-    vm.startRemoteLab(remoteKind,remoteSky,watts,minutes,if(remoteKind=="AUTO") true else remoteStopAtFull)
+    vm.startRemoteLab(remoteKind,remoteSky,watts,null,if(remoteKind=="AUTO") true else remoteStopAtFull)
    },onClose={showRemoteStart=false})
  }
  }
@@ -620,36 +612,65 @@ private fun LabPanel(title: String, content: @Composable ColumnScope.() -> Unit)
  }
 }
 
-/** Datas civis reais e estimativa de 100% são conceitos diferentes.
- * A estimativa não substitui o término programado nem antecipa a conclusão do teste. */
+/** Testes novos não exigem prazo; os horários de testes antigos com prazo são preservados. */
 @Composable
 private fun LabTimeSummary(
  startedAtMs: Long, deadlineAtMs: Long?, nowMs: Long, elapsedMs: Long,
- running: Boolean, endedAtMs: Long?, estimatedFullAtMs: Long?, remoteRemainingMs: Long? = null
+ running: Boolean, endedAtMs: Long?, remoteRemainingMs: Long? = null
 ) {
  val remainingMs = if(!running) null else remoteRemainingMs ?:
   deadlineAtMs?.let { (it-nowMs).coerceAtLeast(0L) }
  Column(verticalArrangement=Arrangement.spacedBy(7.dp),modifier=Modifier.fillMaxWidth()) {
-  Text("Horários do teste",style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.SemiBold)
+  Text("Horários registrados",style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.SemiBold)
   Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
    LabTimeItem("Início",dateCompact(startedAtMs),Modifier.weight(1f))
-   LabTimeItem("Término programado",deadlineAtMs?.let(::dateCompact) ?: "Manual",Modifier.weight(1f))
-  }
-  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
    LabTimeItem("Tempo decorrido",duration(elapsedMs),Modifier.weight(1f))
+  }
+  if(deadlineAtMs!=null) Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+   LabTimeItem("Término programado",dateCompact(deadlineAtMs),Modifier.weight(1f))
    LabTimeItem(if(running) "Tempo restante" else "Fim efetivo",
-    if(running) remainingMs?.let(::duration) ?: "Sem prazo"
+    if(running) remainingMs?.let(::duration) ?: "Indisponível"
     else endedAtMs?.let(::dateCompact) ?: "Indisponível",Modifier.weight(1f))
   }
-  if(running && estimatedFullAtMs!=null) {
-   Text("100% previsto: ${estimatedFullLabel(estimatedFullAtMs,nowMs)}",
-    style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.primary,
-    fontWeight=FontWeight.SemiBold)
-   Text("Estimativa pelo ganho percentual observado; o ritmo pode mudar. Não é o prazo do teste.",
-    style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-  } else if(running && deadlineAtMs==null) {
-   Text("Teste manual: sem horário fixo de encerramento.",
-    style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+  if(!running && deadlineAtMs==null) LabTimeItem("Fim efetivo",endedAtMs?.let(::dateCompact) ?: "Indisponível")
+ }
+}
+
+/** Destaque independente da duração. Sem dados suficientes, nunca mostra horário inventado. */
+@Composable
+private fun LabFinishForecastCard(
+ kind: String, running: Boolean, stopAtFull: Boolean, estimatedFullAtMs: Long?,
+ nowMs: Long, modifier: Modifier = Modifier
+) {
+ val charging = kind in setOf("SOLAR", "ELECTRIC", "AUTO")
+ Card(modifier=modifier.fillMaxWidth(),shape=RoundedCornerShape(22.dp),
+  colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.primaryContainer)) {
+  Column(Modifier.fillMaxWidth().padding(16.dp),verticalArrangement=Arrangement.spacedBy(5.dp)) {
+   Text(if(charging) (if(stopAtFull) "Término previsto do teste" else "Previsão para 100%")
+    else "Término do teste",style=MaterialTheme.typography.titleSmall,
+    color=MaterialTheme.colorScheme.onPrimaryContainer,fontWeight=FontWeight.SemiBold)
+   val time = if(charging && running && estimatedFullAtMs!=null)
+    estimatedFullLabel(estimatedFullAtMs,nowMs) else null
+   Text(when {
+    !running -> "Concluído"
+    !charging -> "Quando você finalizar"
+    time!=null -> time
+    else -> "Aguardando medições"
+   },style=if(time!=null) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.titleLarge,
+    color=MaterialTheme.colorScheme.onPrimaryContainer,fontWeight=FontWeight.Bold)
+   if(time!=null) estimatedFullAtMs?.let { target ->
+    estimatedRemainingLabel(target,nowMs)?.let { remaining ->
+     Text(remaining,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold,
+      color=MaterialTheme.colorScheme.onPrimaryContainer)
+    }
+   }
+   Text(when {
+    !running -> "Consulte o relatório para ver o horário efetivo."
+    !charging -> "Sem prazo fixo: os dados da descarga são registrados até você encerrar."
+    time!=null && stopAtFull -> "Estimativa de chegada aos 100%. Pode mudar com o ritmo da carga."
+    time!=null -> "Previsão para 100%; a finalização do teste continua manual."
+    else -> "A previsão precisa de pelo menos 5 min, ganho de 2 p.p. e carga confirmada."
+   },style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onPrimaryContainer)
   }
  }
 }
@@ -672,7 +693,8 @@ private fun RunningLabCard(test: LabTest,now: Long,vm: PulsoViewModel) {
   val fullPrediction = LabTimeForecast.fullAt(
    test.kind, true, test.startedAt, test.lastReadingAt, now,
    test.initialPercent, test.finalPercent, test.chargingMs, test.lastMode)
-  LabTimeSummary(test.startedAt, test.deadlineAt, now, total, true, null, fullPrediction)
+  LabFinishForecastCard(test.kind,true,test.stopAtFull,fullPrediction,now)
+  LabTimeSummary(test.startedAt, test.deadlineAt, now, total, true, null)
   if(!discharge && test.stopAtFull) Text("✓ Finalização automática ao atingir 100%", style=MaterialTheme.typography.bodySmall, color=MaterialTheme.colorScheme.primary)
   if(test.kind=="SOLAR") Text("Céu: ${skyLabel(test.sky)} • Painel: ${test.panelWatts ?: "?"} W")
   else if(electric || test.kind=="AUTO") Text("Fonte reportada pelo Android: ${test.electricSource}")
@@ -1044,9 +1066,27 @@ private fun RemoteMonitorCard(snapshot: RemoteSnapshot?, connected: Boolean, dev
      }
      LinearProgressIndicator(progress={(snapshot?.batteryPercent ?: 0).coerceIn(0,100)/100f},
       modifier=Modifier.fillMaxWidth().height(10.dp).clip(RoundedCornerShape(12.dp)))
-     Text(snapshot?.estimatedFullAtMs?.let { "100% previsto: ~${dateCompact(it)}" } ?:
-      "Previsão de 100%: aguardando medições suficientes",style=MaterialTheme.typography.bodySmall,
-      color=MaterialTheme.colorScheme.onPrimaryContainer)
+     if(snapshot?.activeId!=null && snapshot.testRunning) {
+      HorizontalDivider(color=MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha=0.18f))
+      Text(if(snapshot.activeKind=="DISCHARGE") "Fim do teste" else if(snapshot.stopAtFull) "Término previsto do teste" else "Previsão para 100%",
+       style=MaterialTheme.typography.titleSmall,color=MaterialTheme.colorScheme.onPrimaryContainer,
+       fontWeight=FontWeight.SemiBold)
+      val predicted = if(snapshot.activeKind!="DISCHARGE")
+       snapshot.estimatedFullAtMs?.takeIf { it > System.currentTimeMillis() }?.let { estimatedFullLabel(it,System.currentTimeMillis()) } else null
+      Text(if(snapshot.activeKind=="DISCHARGE") "Quando você finalizar" else predicted ?: "Aguardando medições",
+       style=if(predicted!=null) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.titleLarge,
+       fontWeight=FontWeight.Bold,color=MaterialTheme.colorScheme.onPrimaryContainer)
+      if(predicted!=null) snapshot.estimatedFullAtMs?.let { target ->
+       estimatedRemainingLabel(target,System.currentTimeMillis())?.let { remaining ->
+        Text(remaining,style=MaterialTheme.typography.titleMedium,fontWeight=FontWeight.SemiBold,
+         color=MaterialTheme.colorScheme.onPrimaryContainer)
+       }
+      }
+      Text(if(snapshot.activeKind=="DISCHARGE") "Sem prazo fixo para a descarga."
+       else if(predicted!=null) "Estimativa até 100%; o ritmo da carga pode variar."
+       else "Sem previsão confiável por enquanto.",style=MaterialTheme.typography.bodySmall,
+       color=MaterialTheme.colorScheme.onPrimaryContainer)
+     }
     }
    }
    Row(horizontalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.fillMaxWidth()) {
@@ -1070,7 +1110,7 @@ private fun RemoteMonitorCard(snapshot: RemoteSnapshot?, connected: Boolean, dev
       snapshot.startedAtMs?.let { started ->
        LabTimeSummary(
         started, snapshot.deadlineAtMs, System.currentTimeMillis(), snapshot.testElapsedMs,
-        snapshot.testRunning, snapshot.endedAtMs, snapshot.estimatedFullAtMs,
+        snapshot.testRunning, snapshot.endedAtMs,
         // Duração restante no controlador vem do tempo registrado pelo aparelho monitorado.
         remoteRemainingMs = if(snapshot.testRunning && snapshot.targetMs!=null)
          (snapshot.targetMs-snapshot.testElapsedMs).coerceAtLeast(0L) else null)
@@ -1162,12 +1202,9 @@ private fun RemoteQrDialog(payload: String, deviceName: String, onClose: () -> U
 @Composable
 private fun RemoteStartDialog(kind: String,onKind: (String)->Unit,sky: String,onSky: (String)->Unit,
  panel: String,onPanel: (String)->Unit,customPanel: String,onCustomPanel: (String)->Unit,
- duration: String,onDuration: (String)->Unit,customMinutes: String,onCustomMinutes: (String)->Unit,
  stopAtFull: Boolean,onStopAtFull: (Boolean)->Unit,onStart: ()->Unit,onClose: ()->Unit) {
  val watts=if(panel=="other") customPanel.toIntOrNull() else panel.toIntOrNull()
- val minutes=if(duration=="manual") null else if(duration=="other") customMinutes.toIntOrNull() else duration.toIntOrNull()
- val valid=kind=="AUTO" || ((kind=="ELECTRIC" || (watts!=null && watts in 1..200)) &&
-  (duration=="manual" || (minutes!=null && minutes in 1..1440)))
+ val valid=kind=="AUTO" || kind=="ELECTRIC" || (kind=="SOLAR" && watts!=null && watts in 1..200)
  AlertDialog(onDismissRequest=onClose,
   title={Text("Iniciar teste remoto")},
   text={Column(Modifier.heightIn(max=480.dp).verticalScroll(rememberScrollState()),
@@ -1196,17 +1233,9 @@ private fun RemoteStartDialog(kind: String,onKind: (String)->Unit,sky: String,on
      keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number),modifier=Modifier.fillMaxWidth())
    } else if(kind=="ELECTRIC") Text("A fonte será identificada pelo Android. USB também pode ser painel ou power bank.",
     style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-   if(kind!="AUTO") Text("Duração",style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.SemiBold)
    if(kind!="AUTO") {
-   listOf(listOf("30" to "30 min","60" to "1 hora","120" to "2 horas"),
-    listOf("240" to "4 horas","manual" to "Manual","other" to "Outro")).forEach { row ->
-    Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(6.dp)) {
-     row.forEach { (value,label) -> LabChoice(label,duration==value,Modifier.weight(1f)){onDuration(value)} }
-    }
-   }
-   if(duration=="other") OutlinedTextField(value=customMinutes,onValueChange={onCustomMinutes(it.filter(Char::isDigit).take(4))},
-    label={Text("Minutos (1 a 1440)")},singleLine=true,
-    keyboardOptions=KeyboardOptions(keyboardType=KeyboardType.Number),modifier=Modifier.fillMaxWidth())
+   Text("Sem prazo fixo: acompanhe a carga até 100% ou finalize quando desejar.",
+    style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
    Row(Modifier.fillMaxWidth().clickable { onStopAtFull(!stopAtFull) },verticalAlignment=Alignment.CenterVertically) {
     Checkbox(checked=stopAtFull,onCheckedChange=null)
     Column {
@@ -1216,7 +1245,7 @@ private fun RemoteStartDialog(kind: String,onKind: (String)->Unit,sky: String,on
     }
    }
    }
-   if(!valid) Text("Confira a potência ou duração informada.",color=MaterialTheme.colorScheme.error,
+   if(!valid) Text("Confira a potência informada.",color=MaterialTheme.colorScheme.error,
     style=MaterialTheme.typography.labelSmall)
   }},
   confirmButton={TextButton(onClick=onStart,enabled=valid){Text("Iniciar teste")}},

@@ -7,7 +7,7 @@ remote = (root/'app/src/main/java/br/com/pulsobateria/labs/RemoteLabsManager.kt'
 core = (root/'core/src/main/kotlin/br/com/pulsobateria/core/LabTimeForecast.kt').read_text()
 checks = {
  'nova função matemática isolada': 'object LabTimeForecast' in core and 'fun fullAt(' in core,
- 'não confunde prazo com previsão': 'Não é o prazo do teste.' in ui,
+ 'não confunde prazo com previsão': 'Estimativa até 100%; o ritmo da carga pode variar.' in ui and 'if(deadlineAtMs!=null)' in ui,
  'previsão apenas para carga': 'kind !in setOf("SOLAR", "ELECTRIC", "AUTO")' in core,
  'sem falsa previsão sem dados': 'gained < 2' in core and 'elapsed < MIN_SPAN_MS' in core and 'return null' in core,
  'recusa leituras antigas': 'MAX_READING_AGE_MS' in core and 'nowMs-lastReadingAtMs' in core,
@@ -17,8 +17,8 @@ checks = {
  'mostra relógio no painel remoto': 'LabTimeSummary(' in ui and 'snapshot.startedAtMs?.let' in ui,
  'mostra hora de início e término': '"Término programado"' in ui and '"Início"' in ui,
  'mostra tempo decorrido/restante': '"Tempo decorrido"' in ui and '"Tempo restante"' in ui,
- 'mostra ETA 100% distinto': '"100% previsto:' in ui and 'estimatedFullLabel(' in ui,
- 'sinaliza testes manuais': 'Manual (sem prazo)' in ui and 'Teste manual: sem horário fixo' in ui,
+ 'mostra ETA 100% em destaque': 'Término previsto do teste' in ui and 'estimatedFullLabel(' in ui and 'LabFinishForecastCard(' in ui,
+ 'sem prazo no formulário': 'selectedMinutes' not in ui and 'vm.startLab(sky,selectedWatts,null,' in ui,
  'mostra prazo no relatório copiado': 'appendLine("Término programado:' in ui,
  'mostra prazo no histórico expandido': 'LabResultRow("Término programado"' in ui,
  'transmite timestamps reais': all(f'val {name}: Long? = null' in remote for name in ('startedAtMs','deadlineAtMs','endedAtMs','estimatedFullAtMs')),

@@ -1,8 +1,16 @@
 # Pulso Bateria
 
-**0.1.0-alpha.71 • versionCode 71** — Android nativo, Kotlin e Jetpack Compose.
+**0.1.0-alpha.72 • versionCode 72** — Android nativo, Kotlin e Jetpack Compose.
 
 Guia de uso e limitações: [Monitoramento remoto LAN v2](docs/REMOTE_LABS.md).
+
+## Novidades da alpha.72
+
+- Solar, Elétrico e Consumo começam sem selecionar duração; encerramento e duração efetiva continuam registrados no relatório.
+- A estimativa de término aos 100% ganha cartão grande no Labs local e destaque junto à bateria no painel remoto.
+- Sem progresso suficiente, a tela informa que aguarda medições; o Consumo mantém encerramento manual sem previsão inventada.
+- O formulário remoto deixa de pedir tempo e envia testes solares/elétricos sem prazo, preservando a finalização opcional aos 100%.
+- Testes com prazo de versões anteriores mantêm suas datas originais no histórico, sem alterar Room v11 ou backup JSON v9.
 
 ## Novidades da alpha.71
 

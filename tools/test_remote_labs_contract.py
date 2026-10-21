@@ -23,7 +23,7 @@ checks={
  'dialog scanner, not CaptureActivity': 'RemoteQrScannerDialog(' in screen and 'AndroidView(factory = { view }' in scanner and 'ScanContract' not in screen,
  'scanner lifecycle cleanup': 'view.resume()' in scanner and 'view.pause()' in scanner and 'onDispose' in scanner,
  'scanner portrait and optional camera': 'SCREEN_ORIENTATION_PORTRAIT' in scanner and 'RequestPermission()' in scanner and 'setUseTextureView(true)' in scanner,
- 'role chooser': 'RemoteRoleChoiceDialog(' in screen and 'Ser monitorado' in screen and 'Monitorar outro celular' in screen,
+ 'top of page role choice, no blocking dialog': 'RemoteGatewayRow(' in screen and 'Ser monitorado' in screen and 'Monitorar outro celular' in screen and 'showRoleChoice' not in screen,
  'switch role confirmation': 'Trocar a função deste aparelho?' in screen and 'confirmSwitchRole' in screen,
  'QR v2 and private IPv4 restriction': 'REMOTE_VERSION = 2' in manager and 'isLocalIpv4(host)' in manager and 'InetAddress.getByName(ip)' in manager,
  'host Wi-Fi/hotspot filter': 'it.name.startsWith("wlan"' in manager and 'it.name.startsWith("ap"' in manager,

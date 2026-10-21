@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import br.com.pulsobateria.MainActivity
 import br.com.pulsobateria.R
 import br.com.pulsobateria.core.LabMath
+import br.com.pulsobateria.core.LabAutoStop
 import br.com.pulsobateria.core.LabFullCharge
 import br.com.pulsobateria.core.LabTemperature
 import br.com.pulsobateria.data.LabDao
@@ -43,6 +44,9 @@ class LabController(
  private val mutex = Mutex()
  private val ready = CompletableDeferred<Unit>()
  private val mutable = MutableStateFlow<LabTest?>(null)
+ /** Estado conservador em memória: reinício do processo reinicia a confirmação da desconexão. */
+ private var autoDisconnectedSince: Long? = null
+ private var autoWasCharging = false
  val current = mutable.asStateFlow()
  val history = dao.observe()
 
@@ -86,6 +90,12 @@ class LabController(
   camera: Boolean = false, wifi: Boolean = false, recording: Boolean = false,
   notes: String = "", stopAtFull: Boolean = true) = startInternal("ELECTRIC", "", null, minutes, screen, camera, wifi, recording, notes, stopAtFull)
 
+ /** Modo automático: somente leituras reais, fonte não atribuída a solar/tomada.
+  * Encerra aos 100%, após 3 minutos confirmados sem fonte, ou por ação manual.
+  */
+ suspend fun startAuto() = startInternal("AUTO", "", null, null,
+  "NAO_INFORMADA", false, false, false, "Monitoramento automático: origem da energia não identificada.", true)
+
  /** Teste de descarga: sem fonte de energia externa no início. */
  suspend fun startDischarge(minutes: Int?, screen: String = "NAO_INFORMADA",
   camera: Boolean = false, wifi: Boolean = false, recording: Boolean = false,
@@ -93,7 +103,7 @@ class LabController(
 
  private suspend fun startInternal(kind: String, sky: String, panelWatts: Int?, minutes: Int?,
   screen: String, camera: Boolean, wifi: Boolean, recording: Boolean, notes: String, stopAtFull: Boolean) {
-  require(kind in setOf("SOLAR", "DISCHARGE", "ELECTRIC"))
+  require(kind in setOf("SOLAR", "DISCHARGE", "ELECTRIC", "AUTO"))
   require(minutes == null || minutes in 1..1440)
   require(screen in setOf("NAO_INFORMADA", "ACESA", "APAGADA"))
   require(notes.length <= 160 && notes.none { Character.isISOControl(it) })
@@ -109,13 +119,13 @@ class LabController(
      "Desconecte o painel, carregador ou power bank e aguarde uma leitura recente da bateria."
     }
    }
-   if (kind == "ELECTRIC") {
+   if (kind in setOf("ELECTRIC", "AUTO")) {
     check(reading?.plugged == true && reading.percent != null &&
      reading.mode.name in setOf("CHARGING", "FULL")) {
-     "Conecte o carregador elétrico e aguarde uma leitura recente de carga do Android."
+     "Conecte uma fonte de energia e aguarde uma leitura recente de carga do Android."
     }
    }
-   if (kind in setOf("SOLAR", "ELECTRIC") && stopAtFull) {
+   if (kind in setOf("SOLAR", "ELECTRIC", "AUTO") && stopAtFull) {
     check(reading?.percent != 100) {
      "A bateria já está em 100%. Desative 'Finalizar ao atingir 100%' para iniciar mesmo assim."
     }
@@ -132,12 +142,14 @@ class LabController(
     finalTemperatureC=initialTemp,
     maxTemperatureC=initialTemp,
     temperatureSumC=tempAggregate.sumC,temperatureCount=tempAggregate.count,
-    electricSource=if(kind=="ELECTRIC") reading?.source?.takeIf { it in setOf("Tomada", "USB", "Sem fio", "Fonte externa") } ?: "Fonte externa" else "",
-    stopAtFull=stopAtFull && kind in setOf("SOLAR", "ELECTRIC"),
+    electricSource=if(kind in setOf("ELECTRIC", "AUTO")) reading?.source?.takeIf { it in setOf("Tomada", "USB", "Sem fio", "Fonte externa") } ?: "Fonte externa" else "",
+    stopAtFull=stopAtFull && kind in setOf("SOLAR", "ELECTRIC", "AUTO"),
     screenCondition=screen,cameraReported=camera,wifiReported=wifi,
     recordingReported=recording,notes=notes)
    val id = withContext(Dispatchers.IO) { dao.insert(test).also { dao.trim() } }
    mutable.value = test.copy(id=id)
+   autoDisconnectedSince = null
+   autoWasCharging = false
   }
  }
 
@@ -195,6 +207,16 @@ class LabController(
    val elapsed = SystemClock.elapsedRealtime()
    val oldWall = test.lastReadingAt
    val oldElapsed = test.lastElapsedMs
+   // Nunca somar uma lacuna grande como tempo confirmado desconectado.
+   if(test.kind=="AUTO") {
+    autoWasCharging = autoWasCharging || test.chargingMs > 0 ||
+     (reading.mode.name=="CHARGING" && reading.plugged==true)
+    val consecutive = oldWall != null && reading.updated > oldWall &&
+     reading.updated-oldWall <= LabAutoStop.MAX_SAMPLE_GAP_MS
+    autoDisconnectedSince = if(!autoWasCharging || reading.plugged != false) null
+     else if(!consecutive) reading.updated
+     else autoDisconnectedSince ?: reading.updated
+   }
    val interval = if(oldWall != null && oldElapsed != null && test.lastMode != null) {
     if(test.kind=="DISCHARGE") LabMath.classifyUnplugged(test.lastMode!!, reading.mode.name,
      test.lastPlugged, reading.plugged, elapsed-oldElapsed,reading.updated-oldWall)
@@ -225,6 +247,9 @@ class LabController(
    if (LabFullCharge.shouldStop(test.kind, test.stopAtFull, reading.percent,
       reading.updated, test.startedAt, oldWall)) {
     finishLocked(test, reading.updated, "FULL")
+   } else if(LabAutoStop.shouldStop(test.kind, autoWasCharging, reading.plugged,
+     autoDisconnectedSince, reading.updated, oldWall)) {
+    finishLocked(test, reading.updated, "UNPLUGGED")
    }
   }
  }
@@ -248,7 +273,8 @@ class LabController(
    externalSeen=test.externalSeen || (test.kind=="DISCHARGE" && recent?.plugged==true))
   withContext(Dispatchers.IO) { dao.update(saved) }
   mutable.value=null
-  if (status=="COMPLETED" || status=="FULL") notifyFinished(saved)
+  autoDisconnectedSince=null; autoWasCharging=false
+  if (status in setOf("COMPLETED","FULL","UNPLUGGED")) notifyFinished(saved)
  }
 
  private fun notifyFinished(test: LabTest) {
@@ -261,7 +287,8 @@ class LabController(
   },PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
   val total=(test.endedAt ?: test.startedAt)-test.startedAt
   val unknown=LabMath.unknownMs(total,test.chargingMs,test.notChargingMs)
-  val content=if(test.status=="FULL") "Bateria atingiu 100% • relatório salvo automaticamente." else if(test.kind=="DISCHARGE") {
+  val content=if(test.status=="FULL") "Bateria atingiu 100% • relatório salvo automaticamente." else if(test.status=="UNPLUGGED")
+   "Fonte desconectada por 3 minutos de leituras confirmadas • relatório salvo." else if(test.kind=="DISCHARGE") {
    val drop=LabMath.dischargePoints(test.initialPercent,test.finalPercent,test.externalSeen)
    when {
     test.externalSeen -> "Fonte externa detectada; consulte o relatório (teste interferido)."
@@ -269,7 +296,7 @@ class LabController(
     else -> "Descarga não conclusiva; consulte o relatório."
    }
   } else "Carga: ${test.chargingMs/60_000} min • Sem carga: ${test.notChargingMs/60_000} min • Sem leitura: ${unknown/60_000} min"
-  val title=if(test.kind=="DISCHARGE") "Labs: teste de consumo concluído" else if(test.kind=="ELECTRIC") "Labs: carregamento elétrico concluído" else "Labs: teste solar concluído"
+  val title=if(test.kind=="DISCHARGE") "Labs: teste de consumo concluído" else if(test.kind=="ELECTRIC") "Labs: carregamento elétrico concluído" else if(test.kind=="AUTO") "Labs: monitoramento automático concluído" else "Labs: teste solar concluído"
   manager.notify(20_000+(test.id%10_000).toInt(),NotificationCompat.Builder(context,"labs")
    .setSmallIcon(R.drawable.ic_notification).setContentTitle(title)
    .setContentText(content).setStyle(NotificationCompat.BigTextStyle().bigText(content))

@@ -2,7 +2,7 @@
 
 - Android Kotlin/Compose, offline, sem anúncios/rastreamento; INTERNET exclusivamente para LAN local opcional em Labs. Não inventar medições ou capacidades do aparelho.
 - Antes de editar, ler README, docs/MEASUREMENTS.md e docs/VERSIONING.md.
-- Versão atual 0.1.0-alpha.70 / versionCode 70. Próxima 0.1.0-alpha.71 / 71. Incrementar sequencialmente cada entrega e sincronizar todos os documentos, Gradle, workflow e nome do ZIP.
+- Versão atual 0.1.0-alpha.71 / versionCode 71. Próxima 0.1.0-alpha.72 / 72. Incrementar sequencialmente cada entrega e sincronizar todos os documentos, Gradle, workflow e nome do ZIP.
 - Preservar applicationId. Keystore privada e Secrets nunca entram no ZIP de código ou repositório. Para Debug atualizável, requer Secrets estáveis; sem Secrets a chave temporária deve receber aviso.
 - Manter cálculos no módulo core, testáveis sem Android; validar nulos, sentinelas, sinal, relógio e lacunas.
 - Não iniciar foreground service fora de ação permitida; manter tipo specialUse e sua justificativa, sem simular dataSync/health. Não adicionar wake locks, permissões privilegiadas ou mecanismos de evasão.
@@ -97,3 +97,5 @@ Alpha.57: Novidades exclusivas do build, sem reutilização literal de itens ant
 - Alpha.69: remoto LAN v2 tem QR de uso único, janela vertical de scanner, papéis explícitos, suporte solar/elétrico, revogação local/notificação. Não persistir credenciais no backup, não criar serviço secundário, não inferir dados em lacunas. Próxima alpha.70 / 70.
 
 - Alpha.70: Labs mostra início civil, prazo programado, decorrido, restante e projeção aproximada para 100% só com evidência de carga. Remoto transmite horários civis do monitorado; histórico mantém prazo original. Room v11, backup JSON v9, persistência e cálculos anteriores mantidos. Próxima alpha.71 / 71.
+
+- Alpha.71: modo remoto sem seleção modal automática, conexão recente criptografada em AndroidKeyStore, controle AUTO até 100% ou 3 min de leituras de desconexão após carga confirmada; UI de resumo prioriza indicadores-chave. Room v11 e backup v9 sem migração; próxima alpha.72 / 72.

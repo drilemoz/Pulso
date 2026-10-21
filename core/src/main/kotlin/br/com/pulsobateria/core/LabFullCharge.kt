@@ -13,6 +13,6 @@ object LabFullCharge {
   sampleTimeMs: Long,
   testStartedAtMs: Long,
   previousSampleTimeMs: Long?,
- ): Boolean = enabled && kind in setOf("SOLAR", "ELECTRIC") && percent == 100 &&
+ ): Boolean = enabled && kind in setOf("SOLAR", "ELECTRIC", "AUTO") && percent == 100 &&
   sampleTimeMs > testStartedAtMs && sampleTimeMs > (previousSampleTimeMs ?: testStartedAtMs)
 }

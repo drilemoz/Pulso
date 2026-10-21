@@ -21,7 +21,7 @@ assert 'reading?.plugged == true' in controller and 'reading.mode.name in setOf(
 assert 'LabTemperature.add(' in controller and 'LabTemperature.meanC(' in ui
 assert '"electric" -> vm.startElectricLab(' in ui and '"ELECTRIC" -> "Pulso Bateria • Carregamento Elétrico"' in ui
 assert 'Média calculada com ${test.temperatureCount} leituras válidas' in ui
-assert 'if(!electric)' in ui and 'if(test.kind=="ELECTRIC")' in ui
+assert 'if(test.kind=="SOLAR")' in ui and 'else if(electric || test.kind=="AUTO")' in ui
 assert 'freshEndTemp=recent?.takeIf { it.updated > (test.lastReadingAt ?: test.startedAt) }' in controller
 instrumented=(r/'app/src/androidTest/java/br/com/pulsobateria/data/RoomMigrationTest.kt').read_text()
 assert 'carregamentoEletricoPersisteTemperaturasEMedia' in instrumented

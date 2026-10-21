@@ -190,6 +190,7 @@ data class RemoteLabsUiState(
     val connectedDevice: String? = null,
     val statusMessage: String = "",
     val actionMessage: String = "",
+    val recentDevices: List<RecentDevice> = emptyList(),
 )
 
 private data class RemoteGrant(
@@ -212,7 +213,11 @@ class RemoteLabsManager(
     private val repository: BatteryRepository,
     private val scope: CoroutineScope,
 ) {
-    private val mutable = MutableStateFlow(RemoteLabsUiState())
+    private val remembered = RecentRemoteDevices(context)
+    private fun recents(): List<RecentDevice> = remembered.entries().map {
+        RecentDevice(it.id,it.name,"${it.host}:${it.port}",it.lastUsed)
+    }
+    private val mutable = MutableStateFlow(RemoteLabsUiState(recentDevices=recents()))
     val ui = mutable.asStateFlow()
     private val guard = Mutex()
     private val clientLimit = Semaphore(4)
@@ -243,7 +248,7 @@ class RemoteLabsManager(
                 sharedTestId = null
                 val endpoint = newEndpoint(ip, socket.localPort)
                 pairingIssuedAt = System.currentTimeMillis()
-                mutable.value = RemoteLabsUiState(
+                mutable.value = RemoteLabsUiState(recentDevices=recents(),
                     role = RemoteRole.HOST, hosting = true, hostEndpoint = endpoint,
                     actionMessage = "QR Code válido por 5 minutos e para um único controlador.",
                     statusMessage = "Conexão local iniciada. Aguardando pareamento.",
@@ -289,7 +294,7 @@ class RemoteLabsManager(
                 removeAccessNotification()
                 runCatching { socket.close() }
                 if (serverSocket === socket) serverSocket = null
-                guard.withLock { grant = null; mutable.value = RemoteLabsUiState() }
+                guard.withLock { grant = null; mutable.value = RemoteLabsUiState(recentDevices=recents()) }
             }
         }
     }
@@ -335,7 +340,7 @@ class RemoteLabsManager(
         heartbeatJob?.cancel()
         runCatching { serverSocket?.close() }
         removeAccessNotification()
-        mutable.value = RemoteLabsUiState()
+        mutable.value = RemoteLabsUiState(recentDevices=recents())
     }
 
     fun connect(payload: String) {
@@ -345,9 +350,10 @@ class RemoteLabsManager(
             return
         }
         pollJob?.cancel()
+        controller = null
         val id = newSecret()
         val device = displayName(Build.MODEL ?: "Celular B")
-        mutable.value = RemoteLabsUiState(
+        mutable.value = RemoteLabsUiState(recentDevices=recents(),
             role = RemoteRole.CONTROLLER, controllerEndpoint = endpoint,
             statusMessage = "Solicitando autorização a ${endpoint.deviceName}…",
         )
@@ -361,7 +367,10 @@ class RemoteLabsManager(
                 return@launch
             }
             if (!isActive) return@launch
-            val session = ControllerSession(endpoint, id, sessionSecret)
+            val session = ControllerSession(endpoint,id,sessionSecret)
+            // Nunca armazenar o token de pareamento QR; somente autorização de sessão.
+            remembered.remember(endpoint.host,endpoint.port,endpoint.deviceName,id,sessionSecret)
+            mutable.value = mutable.value.copy(recentDevices=recents())
             controller = session
             while (isActive && controller === session) {
                 val response = request(endpoint, signed("status", session))
@@ -374,26 +383,73 @@ class RemoteLabsManager(
                     connected = online && snapshot != null, snapshot = snapshot,
                     statusMessage = if (online && snapshot != null) "Conectado" else if (response?.optString("code") == "DENIED") "Acesso encerrado pelo celular monitorado." else "Conexão perdida. Tentando reconectar à sessão autorizada…",
                 )
-                if (response?.optString("code") == "DENIED") break
+                if (response?.optString("code") == "DENIED") {
+                    val invalid = remembered.entries().firstOrNull { it.clientId == session.clientId }
+                    if (invalid != null) remembered.forget(invalid.id)
+                    mutable.value = mutable.value.copy(recentDevices=recents())
+                    break
+                }
                 delay(if (online) 1500L else 3000L)
             }
         }
     }
 
+    /** Desconectar não revoga a autorização: pode voltar via Aparelhos recentes.
+     * O host continua autorizado e oferece a ação explícita "Encerrar acesso".
+     */
     fun disconnectController() {
         pollJob?.cancel()
         pollJob = null
-        val session = controller
         controller = null
-        mutable.value = RemoteLabsUiState()
-        if (session != null) scope.launch(Dispatchers.IO) {
-            request(session.endpoint, signed("disconnect", session))
+        mutable.value = RemoteLabsUiState(recentDevices=recents())
+    }
+
+    /** Reconectar somente com credencial de sessão previamente aceita pelo host.
+     * Se o host reiniciou ou revogou, será necessário um novo QR.
+     */
+    fun connectRecent(id: String) {
+        val saved = remembered.entries().firstOrNull { it.id == id } ?: return
+        pollJob?.cancel()
+        controller = null
+        val endpoint=RemoteEndpoint(saved.host,saved.port,"",displayName(saved.name))
+        val session=ControllerSession(endpoint,saved.clientId,saved.secret)
+        controller=session
+        mutable.value=RemoteLabsUiState(role=RemoteRole.CONTROLLER,controllerEndpoint=endpoint,
+            recentDevices=recents(),statusMessage="Reconectando a ${saved.name}…")
+        pollJob=scope.launch(Dispatchers.IO) {
+            var touched=false
+            while (isActive && controller === session) {
+                val response=request(endpoint,signed("status",session))
+                if (!isActive || controller !== session) break
+                val denied=response?.optString("code")=="DENIED"
+                val snapshot=if(response?.optBoolean("ok")==true) runCatching {
+                    RemoteSnapshot.fromJson(response.getJSONObject("snapshot"))
+                }.getOrNull() else null
+                if(snapshot!=null && !touched) { remembered.touch(id); touched=true }
+                if(denied) remembered.forget(id)
+                mutable.value=mutable.value.copy(connected=snapshot!=null,snapshot=snapshot,
+                    recentDevices=recents(),statusMessage=when {
+                        snapshot!=null -> "Conectado"
+                        denied -> "Autorização encerrada. Gere um novo QR no celular monitorado."
+                        else -> "Sem conexão. Verifique o Wi-Fi e se o monitorado ainda está compartilhando."
+                    })
+                if(denied) break
+                delay(if(snapshot!=null) 1500L else 3000L)
+            }
         }
+    }
+
+    fun forgetRecent(id: String) {
+        val entry=remembered.entries().firstOrNull { it.id==id }
+        remembered.forget(id)
+        mutable.value=mutable.value.copy(recentDevices=recents())
+        // Somente os segredos locais são apagados; o host pode revogar pela própria tela.
+        if (entry!=null && controller?.clientId==entry.clientId) disconnectController()
     }
 
     fun startRemoteLab(kind: String, sky: String, watts: Int?, minutes: Int?, stopAtFull: Boolean) {
         val session = controller ?: return
-        if (kind !in setOf("SOLAR", "ELECTRIC")) return
+        if (kind !in setOf("SOLAR", "ELECTRIC", "AUTO")) return
         scope.launch(Dispatchers.IO) {
             val payload = signed("start", session).put("kind", kind).put("stopAtFull", stopAtFull)
             if (kind == "SOLAR") {
@@ -404,7 +460,7 @@ class RemoteLabsManager(
             val response = request(session.endpoint, payload)
             if (controller !== session) return@launch
             mutable.value = mutable.value.copy(actionMessage = if (response?.optBoolean("ok") == true)
-                "Teste ${if (kind == "SOLAR") "solar" else "elétrico"} iniciado no outro aparelho."
+                "${when(kind) { "SOLAR" -> "Teste solar"; "ELECTRIC" -> "Carregamento elétrico"; else -> "Monitoramento automático" }} iniciado no outro aparelho."
                 else response?.optString("message")?.takeIf { it.isNotBlank() } ?: "Não foi possível iniciar o teste remoto.")
         }
     }
@@ -489,12 +545,15 @@ class RemoteLabsManager(
 
     private suspend fun startRequest(request: JSONObject): JSONObject = runCatching {
         val kind = request.getString("kind")
-        require(kind == "SOLAR" || kind == "ELECTRIC") { "Tipo de teste inválido." }
+        require(kind in setOf("SOLAR", "ELECTRIC", "AUTO")) { "Tipo de teste inválido." }
         val minutes = request.optInt("minutes").takeIf { request.has("minutes") }
         require(minutes == null || minutes in 1..1440) { "Duração inválida." }
         val stopAtFull = request.optBoolean("stopAtFull", true)
         val sky = request.optString("sky", "nublado")
         val watts = request.optInt("panelWatts").takeIf { request.has("panelWatts") }
+        if (kind == "AUTO") {
+            require(minutes == null && stopAtFull) { "O modo automático não utiliza duração ou opções manuais." }
+        }
         if (kind == "SOLAR") {
             require(sky in setOf("forte", "parcial", "nublado", "chuva"))
             require(watts != null && watts in 1..200)
@@ -502,7 +561,8 @@ class RemoteLabsManager(
         /** Não começar foreground service silenciosamente por comando de rede em segundo plano. */
         check(repository.serviceActive.value) { "Ative o monitoramento no celular monitorado antes de iniciar remotamente." }
         if (kind == "SOLAR") labs.start(sky, watts, minutes, stopAtFull = stopAtFull)
-        else labs.startElectric(minutes, stopAtFull = stopAtFull)
+        else if (kind == "ELECTRIC") labs.startElectric(minutes, stopAtFull = stopAtFull)
+        else labs.startAuto()
         sharedTestId = labs.snapshot()?.id
         JSONObject().put("ok", true)
     }.getOrElse { JSONObject().put("ok", false).put("message", it.message ?: "Falha ao iniciar teste.") }
@@ -613,7 +673,7 @@ private fun readShortLine(reader: BufferedReader): String? {
     return null
 }
 
-private fun isLocalIpv4(host: String): Boolean {
+internal fun isLocalIpv4(host: String): Boolean {
     val segments = host.split('.')
     if (segments.size != 4) return false
     val parts = segments.map { value ->

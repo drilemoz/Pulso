@@ -68,6 +68,8 @@ class PulsoViewModel(application: Application): AndroidViewModel(application) {
  fun stopRemoteHosting() { app.remoteLabs.stopHosting() }
  fun connectRemote(payload: String) { app.remoteLabs.connect(payload) }
  fun disconnectRemote() { app.remoteLabs.disconnectController() }
+ fun reconnectRecentRemote(id: String) { app.remoteLabs.connectRecent(id) }
+ fun forgetRecentRemote(id: String) { app.remoteLabs.forgetRecent(id) }
  fun revokeRemoteAccess() { app.remoteLabs.revokeAccess() }
  fun regenerateRemoteQr() { app.remoteLabs.regenerateQr() }
  fun startRemoteLab(kind: String,sky: String,watts: Int?,minutes: Int?,stopAtFull: Boolean) {

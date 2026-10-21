@@ -1,8 +1,16 @@
 # Pulso Bateria
 
-**0.1.0-alpha.70 • versionCode 70** — Android nativo, Kotlin e Jetpack Compose.
+**0.1.0-alpha.71 • versionCode 71** — Android nativo, Kotlin e Jetpack Compose.
 
 Guia de uso e limitações: [Monitoramento remoto LAN v2](docs/REMOTE_LABS.md).
+
+## Novidades da alpha.71
+
+- Monitoramento remoto abre sem pop-up obrigatória: ações Ser monitorado e Monitorar outro celular ficam visíveis no topo do Labs.
+- Aparelhos recentes permite reconectar sem novo QR enquanto a autorização do monitorado continuar válida; credenciais locais são protegidas pelo AndroidKeyStore.
+- Carga automática inicia com um toque, sem prazo nem seleção de Solar/Elétrico, preservando a origem informada pelo Android sem atribuir a fonte incorretamente.
+- Carga automática finaliza ao atingir 100% ou após três minutos consecutivos de desconexão confirmada, mantendo relatório e lacunas observacionais.
+- Painel remoto destaca percentual, ganho na bateria e previsão, recolhendo temperaturas e outros detalhes técnicos sem ocultar os horários do teste.
 
 ## Novidades da alpha.70
 

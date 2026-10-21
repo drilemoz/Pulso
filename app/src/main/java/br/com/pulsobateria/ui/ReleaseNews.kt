@@ -12,14 +12,14 @@ import br.com.pulsobateria.BuildConfig
 
 /** Alterações exclusivas do build atual. Atualizar obrigatoriamente em cada release. */
 internal object ReleaseNews {
- const val VERSION_NAME = "0.1.0-alpha.70"
- const val VERSION_CODE = 70
+ const val VERSION_NAME = "0.1.0-alpha.71"
+ const val VERSION_CODE = 71
  val ITEMS = listOf(
-  "Labs mostra horário de início, término programado, duração transcorrida e tempo restante nos testes Solar, Elétrico e Consumo.",
-  "O painel remoto recebe os horários reais do aparelho monitorado e diferencia prazo, tempo restante e fim efetivo.",
-  "Testes de carga exibem previsão aproximada de 100% somente com ganho percentual e intervalos de carga suficientes.",
-  "Testes manuais informam ausência de prazo, e relatórios e histórico passam a indicar o término programado.",
-  "Novas verificações protegem horários, leituras antigas, lacunas e a separação entre previsão de carga e prazo do teste.",
+  "Monitoramento remoto abre sem pop-up obrigatória: ações Ser monitorado e Monitorar outro celular ficam visíveis no topo do Labs.",
+  "Aparelhos recentes permite reconectar sem novo QR enquanto a autorização do monitorado continuar válida; credenciais locais são protegidas pelo AndroidKeyStore.",
+  "Carga automática inicia com um toque, sem prazo nem seleção de Solar/Elétrico, preservando a origem informada pelo Android sem atribuir a fonte incorretamente.",
+  "Carga automática finaliza ao atingir 100% ou após três minutos consecutivos de desconexão confirmada, mantendo relatório e lacunas observacionais.",
+  "Painel remoto destaca percentual, ganho na bateria e previsão, recolhendo temperaturas e outros detalhes técnicos sem ocultar os horários do teste.",
  )
 }
 

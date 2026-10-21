@@ -16,7 +16,7 @@ object LabTimeForecast {
   nowMs: Long, initialPercent: Int?, currentPercent: Int?,
   chargingMs: Long, lastMode: String?
  ): Long? {
-  if (!running || kind !in setOf("SOLAR", "ELECTRIC") || lastMode != "CHARGING" ||
+  if (!running || kind !in setOf("SOLAR", "ELECTRIC", "AUTO") || lastMode != "CHARGING" ||
    startedAtMs <= 0 || nowMs < startedAtMs || lastReadingAtMs == null ||
    lastReadingAtMs !in startedAtMs..nowMs || nowMs-lastReadingAtMs > MAX_READING_AGE_MS ||
    initialPercent == null || currentPercent == null || initialPercent !in 0..98 ||

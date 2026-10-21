@@ -1,6 +1,6 @@
 # Versionamento
 
-Versão atual: **0.1.0-alpha.70**, **versionCode 70**.
+Versão atual: **0.1.0-alpha.71**, **versionCode 71**.
 
 Cada alteração no projeto deve aumentar sequencialmente o `versionCode` e o `versionName`, além de sincronizar README, CHANGELOG, RELEASE_NOTES e documentação de validação.
 
@@ -55,3 +55,5 @@ Alpha.68: AndroidManifest declara camera/autofoco opcionais para QR no Labs; res
 Alpha.69: Labs remoto v2 (scanner em janela vertical, seleção de função, dois tipos de carga, sessão autorizada e revogável). Room v11/backup v9 preservados. Próxima alpha.70 / 70.
 
 Alpha.70: horários reais do teste local/remoto; ETA para 100% exige cobertura observacional. Sem migrações Room/backup; próxima alpha.71 / 71.
+
+Alpha.71: interface remota sem pop-up inicial; recent devices com credencial de sessão cifrada no Android Keystore e revogação mantida. Carga AUTO usa leituras existentes, encerra em 100% ou 3 min desconectada após carga verificada; Room v11/backup JSON v9 sem migração. Próxima alpha.72 / 72.

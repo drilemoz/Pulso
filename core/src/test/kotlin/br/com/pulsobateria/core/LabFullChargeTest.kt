@@ -14,6 +14,8 @@ class LabFullChargeTest {
 
  @Test fun encerraEletricoMasNuncaDescarga() {
   assertTrue(LabFullCharge.shouldStop("ELECTRIC",true,100,21_000,10_000,null))
+  assertTrue(LabFullCharge.shouldStop("AUTO",true,100,21_000,10_000,null))
+  assertFalse(LabFullCharge.shouldStop("AUTO",true,99,21_000,10_000,null))
   assertFalse(LabFullCharge.shouldStop("DISCHARGE",true,100,21_000,10_000,null))
   assertFalse(LabFullCharge.shouldStop("SOLAR",false,100,21_000,10_000,null))
   assertFalse(LabFullCharge.shouldStop("ELECTRIC",false,100,21_000,10_000,null))

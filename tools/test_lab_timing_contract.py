@@ -8,7 +8,7 @@ core = (root/'core/src/main/kotlin/br/com/pulsobateria/core/LabTimeForecast.kt')
 checks = {
  'nova função matemática isolada': 'object LabTimeForecast' in core and 'fun fullAt(' in core,
  'não confunde prazo com previsão': 'Não é o prazo do teste.' in ui,
- 'previsão apenas para carga': 'kind !in setOf("SOLAR", "ELECTRIC")' in core,
+ 'previsão apenas para carga': 'kind !in setOf("SOLAR", "ELECTRIC", "AUTO")' in core,
  'sem falsa previsão sem dados': 'gained < 2' in core and 'elapsed < MIN_SPAN_MS' in core and 'return null' in core,
  'recusa leituras antigas': 'MAX_READING_AGE_MS' in core and 'nowMs-lastReadingAtMs' in core,
  'exige carga confirmada': 'chargingMs.toDouble()/elapsed < 0.75' in core and 'lastMode != "CHARGING"' in core,

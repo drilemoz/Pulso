@@ -16,6 +16,7 @@ class LabTimeForecastTest {
   // +10 p.p. em 30 min -> 20 p.p./h, 60 p.p. faltantes -> 3 h.
   assertEquals(read + 3*3_600_000L, eta())
   assertEquals(read + 3*3_600_000L, eta(kind="ELECTRIC"))
+  assertEquals(read + 3*3_600_000L, eta(kind="AUTO"))
  }
  @Test fun evitaEstimativaEmConsumoOuTesteConcluido() {
   assertNull(eta(kind="DISCHARGE"))

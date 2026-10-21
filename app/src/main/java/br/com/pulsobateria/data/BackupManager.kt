@@ -231,19 +231,20 @@ class BackupManager(
     notes=if(backupVersion>=6) t.getString("notes") else "")
   }
   require(labs.map { it.id }.toSet().size==labs.size && labs.all { t ->
-   t.id>0 && t.kind in setOf("SOLAR","DISCHARGE","ELECTRIC") &&
+   t.id>0 && t.kind in setOf("SOLAR","DISCHARGE","ELECTRIC","AUTO") &&
    (when(t.kind) {
     "SOLAR" -> t.sky in setOf("forte","parcial","nublado","chuva") &&
      t.skyChanges.length in 1..3000 && t.panelWatts?.let { it in 1..200 } != false && t.electricSource.isEmpty()
-    "ELECTRIC" -> t.sky.isEmpty() && t.skyChanges.isEmpty() && t.panelWatts==null &&
+    "ELECTRIC", "AUTO" -> t.sky.isEmpty() && t.skyChanges.isEmpty() && t.panelWatts==null &&
      t.electricSource in setOf("Tomada","USB","Sem fio","Fonte externa")
     else -> t.sky.isEmpty() && t.skyChanges.isEmpty() && t.panelWatts==null && t.electricSource.isEmpty() &&
      t.chargingMs==0L && t.validCurrentMs==0L && t.weightedMaMs==0.0
    }) &&
    t.targetMs?.let { it in 60_000L..86_400_000L } != false &&
    t.startedAt>0 && t.endedAt!=null && t.endedAt>=t.startedAt &&
-   t.status in setOf("STOPPED","COMPLETED","FULL") &&
-   (t.status!="FULL" || t.kind in setOf("SOLAR","ELECTRIC") && t.stopAtFull && t.finalPercent==100) &&
+   t.status in setOf("STOPPED","COMPLETED","FULL","UNPLUGGED") &&
+   (t.status!="FULL" || t.kind in setOf("SOLAR","ELECTRIC","AUTO") && t.stopAtFull && t.finalPercent==100) &&
+   (t.status!="UNPLUGGED" || t.kind=="AUTO") &&
    (t.kind!="DISCHARGE" || !t.stopAtFull) &&
    t.initialPercent?.let { it in 0..100 } != false && t.finalPercent?.let { it in 0..100 } != false &&
    t.chargingMs in 0..(t.endedAt-t.startedAt) &&

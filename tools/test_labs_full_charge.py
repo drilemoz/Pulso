@@ -13,14 +13,14 @@ instrumented=(root/'app/src/androidTest/java/br/com/pulsobateria/data/RoomMigrat
 core=(root/'core/src/main/kotlin/br/com/pulsobateria/core/LabFullCharge.kt').read_text()
 assert 'version = 11' in store and 'MIGRATION_10_11' in store
 assert '@ColumnInfo(defaultValue = "0") val stopAtFull: Boolean = false' in store
-assert 'fun shouldStop(' in core and 'percent == 100' in core and 'kind in setOf("SOLAR", "ELECTRIC")' in core
+assert 'fun shouldStop(' in core and 'percent == 100' in core and 'kind in setOf("SOLAR", "ELECTRIC", "AUTO")' in core
 assert 'reading.updated <= (test.lastReadingAt ?: 0L)' in controller
 assert 'reading.updated <= test.startedAt' in controller
 assert 'reading.updated >= test.deadlineAt' in controller
 assert 'finishLocked(test, reading.updated, "FULL")' in controller
 assert 'status=="FULL"' in controller and 'notifyFinished(saved)' in controller
-assert 'if (status=="COMPLETED" || status=="FULL") notifyFinished(saved)' in controller
-assert 'stopAtFull=stopAtFull && kind in setOf("SOLAR", "ELECTRIC")' in controller
+assert 'if (status in setOf("COMPLETED","FULL","UNPLUGGED")) notifyFinished(saved)' in controller
+assert 'stopAtFull=stopAtFull && kind in setOf("SOLAR", "ELECTRIC", "AUTO")' in controller
 assert 'notes,stopAtFull) { onMonitor(true) }' in ui and ui.count('notes,stopAtFull) { onMonitor(true) }')==2
 assert 'if(solar || electric) item' in ui and 'Finalizar ao atingir 100%' in ui
 assert 'var stopAtFull by rememberSaveable { mutableStateOf(true) }' in ui
@@ -29,7 +29,7 @@ assert 'app.labs.startElectric(minutes,screen,camera,wifi,recording,notes,stopAt
 assert 'app.labs.start(sky,watts,minutes,screen,camera,wifi,recording,notes,stopAtFull)' in vm
 assert 'const val VERSION = 9' in backup and 'put("stopAtFull",t.stopAtFull)' in backup
 assert 'backupVersion>=9 && t.getBoolean("stopAtFull")' in backup
-assert 't.status in setOf("STOPPED","COMPLETED","FULL")' in backup
+assert 't.status in setOf("STOPPED","COMPLETED","FULL","UNPLUGGED")' in backup
 assert 'migracaoDaVersao10PreservaOpcaoDesativadaEmTestesLegados' in instrumented
 assert 'assertFalse(old.stopAtFull)' in instrumented and 'assertTrue(stored.stopAtFull)' in instrumented
 # A funcionalidade foi introduzida na alpha.67; Novidades deve anunciar apenas o build atual.

@@ -1,3 +1,17 @@
+# Validação 0.1.0-alpha.71 (20/10/2026)
+
+- Base: alpha.70. Mudanças limitadas ao fluxo remoto, modo AUTO e tipografia/layout dos dados. Room v11, backup JSON v9 e AIDL v1 preservados.
+- UI: escolha no topo sem pop-up obrigatória; aparelhos recentes até cinco itens; indicador principal da bateria e ganho; detalhes técnicos recolhíveis.
+- Aparelhos recentes: sessão salva apenas após pareamento válido e criptografada em AndroidKeyStore/AES-GCM. Não usa token QR. Reconexão só enquanto sessão original do monitorado continuar válida. Credenciais não são transferidas por backup.
+- AUTO: exige fonte detectada e monitoramento foreground já ativo; termina com amostra nova a 100% ou após três minutos de desconexão consecutivamente observada, com lacunas máximas de 90 segundos, apenas depois de detectar carga. Sem leitura, não presume desconexão.
+- Contrato de segurança preservado: revogação no host, QR de uso único, IP privado, sem TLS (usar Wi-Fi confiável).
+- Os testes reais entre dois aparelhos, mudança de Wi-Fi, processo interrompido, credenciais AndroidKeyStore e visualização em telas pequenas continuam necessários; verificações estáticas não validam isso.
+- Verificações executadas: 22 scripts `tools/test_*.py` aprovados, incluindo 19 contratos do modo remoto 2.1, contratos v2 legados, migrações SQLite e gate de versão/Novidades.
+- `python tools/validate_source.py`, `python tools/check_release_news.py`, `python tools/test_release_consistency.py`: aprovados, incluindo SHA-256 e integridade do Gradle Wrapper.
+- `bash tools/run_external_labs_policy_test.sh`: 16 invariantes Kotlin/JVM aprovados. `bash tools/run_math_audit.sh`: 15 grupos de matemática aprovados.
+- Kotlin PSI: 84 arquivos `.kt` analisados sem erros de sintaxe. `RecentRemoteDevices.kt` compilado isoladamente com Kotlin e substitutos das APIs Android/JSON; a regra `LabAutoStop` e `LabFullCharge` foi compilada e executada em Kotlin/JVM com asserts de 100%, 3 minutos e lacunas.
+- Tentativa real de `./gradlew :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --offline --no-daemon`: falhou antes da compilação ao baixar Gradle 8.11.1 (`UnknownHostException: services.gradle.org`). Portanto Android/Compose/Room instrumentado, Keystore físico e comunicação real ainda pendentes.
+
 # Validação 0.1.0-alpha.70 (20/10/2026)
 
 - UI Labs: início, término programado, tempo decorrido, tempo restante; em testes manuais informa que não há prazo. Histórico expandido e relatório copiado mostram prazo original e fim efetivo.

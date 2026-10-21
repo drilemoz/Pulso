@@ -1,3 +1,11 @@
+## 0.1.0-alpha.73
+
+- O painel remoto apresenta cartões de corrente e temperatura com a mesma altura e unidades na mesma linha.
+- O ganho de bateria no controle remoto passa a ser exibido em %, com indicação de Carga automática quando aplicável, sem usar p.p. na interface.
+- Uma nova notificação no celular controlador avisa quando a carga monitorada chega a 100%, perde a fonte ou termina, sem repetir alertas por atualização.
+- A notificação de conclusão remota solicita permissão no controlador após o pareamento e abre o Labs; o relatório continua salvo no aparelho monitorado.
+- A auditoria confirma que uma nova leitura real de 100% é persistida antes de encerrar o teste solar, elétrico ou automático; sem alterações no Room ou backup.
+
 ## 0.1.0-alpha.72
 
 - Solar, Elétrico e Consumo começam sem selecionar duração; encerramento e duração efetiva continuam registrados no relatório.

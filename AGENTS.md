@@ -2,7 +2,7 @@
 
 - Android Kotlin/Compose, offline, sem anúncios/rastreamento; INTERNET exclusivamente para LAN local opcional em Labs. Não inventar medições ou capacidades do aparelho.
 - Antes de editar, ler README, docs/MEASUREMENTS.md e docs/VERSIONING.md.
-- Versão atual 0.1.0-alpha.72 / versionCode 72. Próxima 0.1.0-alpha.73 / 73. Incrementar sequencialmente cada entrega e sincronizar todos os documentos, Gradle, workflow e nome do ZIP.
+- Versão atual 0.1.0-alpha.73 / versionCode 73. Próxima 0.1.0-alpha.74 / 74. Incrementar sequencialmente cada entrega e sincronizar todos os documentos, Gradle, workflow e nome do ZIP.
 - Preservar applicationId. Keystore privada e Secrets nunca entram no ZIP de código ou repositório. Para Debug atualizável, requer Secrets estáveis; sem Secrets a chave temporária deve receber aviso.
 - Manter cálculos no módulo core, testáveis sem Android; validar nulos, sentinelas, sinal, relógio e lacunas.
 - Não iniciar foreground service fora de ação permitida; manter tipo specialUse e sua justificativa, sem simular dataSync/health. Não adicionar wake locks, permissões privilegiadas ou mecanismos de evasão.
@@ -101,3 +101,5 @@ Alpha.57: Novidades exclusivas do build, sem reutilização literal de itens ant
 - Alpha.71: modo remoto sem seleção modal automática, conexão recente criptografada em AndroidKeyStore, controle AUTO até 100% ou 3 min de leituras de desconexão após carga confirmada; UI de resumo prioriza indicadores-chave. Room v11 e backup v9 sem migração; próxima alpha.72 / 72.
 
 - Alpha.72: testes locais/remotos começam sem duração fixa; Solar/Elétrico têm ETA 100% em destaque só com leitura confiável, Consumo não promete hora de fim. Preserve relatórios e eventuais prazos legados. Room v11/JSON v9 sem migração; próxima alpha.73 / 73.
+
+- Alpha.73: cartões remotos de corrente e temperatura igualados; ganho visível em %; notificação única de conclusão no controlador se houver conexão e permissão; confirma encerramento FULL com relatório persistido. Room v11 e backup JSON v9 preservados. Próxima alpha.74 / 74.

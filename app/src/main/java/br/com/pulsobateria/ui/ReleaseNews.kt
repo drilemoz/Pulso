@@ -12,14 +12,14 @@ import br.com.pulsobateria.BuildConfig
 
 /** Alterações exclusivas do build atual. Atualizar obrigatoriamente em cada release. */
 internal object ReleaseNews {
- const val VERSION_NAME = "0.1.0-alpha.72"
- const val VERSION_CODE = 72
+ const val VERSION_NAME = "0.1.0-alpha.73"
+ const val VERSION_CODE = 73
  val ITEMS = listOf(
-  "Solar, Elétrico e Consumo começam sem selecionar duração; encerramento e duração efetiva continuam registrados no relatório.",
-  "A estimativa de término aos 100% ganha cartão grande no Labs local e destaque junto à bateria no painel remoto.",
-  "Sem progresso suficiente, a tela informa que aguarda medições; o Consumo mantém encerramento manual sem previsão inventada.",
-  "O formulário remoto deixa de pedir tempo e envia testes solares/elétricos sem prazo, preservando a finalização opcional aos 100%.",
-  "Testes com prazo de versões anteriores mantêm suas datas originais no histórico, sem alterar Room v11 ou backup JSON v9.",
+  "O painel remoto apresenta cartões de corrente e temperatura com a mesma altura e unidades na mesma linha.",
+  "O ganho de bateria no controle remoto passa a ser exibido em %, com indicação de Carga automática quando aplicável, sem usar p.p. na interface.",
+  "Uma nova notificação no celular controlador avisa quando a carga monitorada chega a 100%, perde a fonte ou termina, sem repetir alertas por atualização.",
+  "A notificação de conclusão remota solicita permissão no controlador após o pareamento e abre o Labs; o relatório continua salvo no aparelho monitorado.",
+  "A auditoria confirma que uma nova leitura real de 100% é persistida antes de encerrar o teste solar, elétrico ou automático; sem alterações no Room ou backup.",
  )
 }
 

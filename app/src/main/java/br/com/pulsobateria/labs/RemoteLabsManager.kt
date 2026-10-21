@@ -15,6 +15,7 @@ import br.com.pulsobateria.MainActivity
 import br.com.pulsobateria.R
 import br.com.pulsobateria.core.LabMath
 import br.com.pulsobateria.core.LabTimeForecast
+import br.com.pulsobateria.core.RemoteChargeCompletion
 import br.com.pulsobateria.data.LabTest
 import br.com.pulsobateria.monitor.BatteryRepository
 import kotlinx.coroutines.CancellationException
@@ -50,6 +51,7 @@ private const val QR_LIFETIME_MS = 300_000L
 private const val ONLINE_WINDOW_MS = 12_000L
 private const val NOTIFICATION_ID = 23_690
 private const val CHANNEL_ID = "remote_labs_access"
+private const val COMPLETION_CHANNEL_ID = "remote_labs_completion"
 
 /** A identidade exibida é declarada pelo próprio controlador, não autenticada por hardware. */
 private fun displayName(value: String): String = value.trim().filterNot { Character.isISOControl(it) }
@@ -229,6 +231,8 @@ class RemoteLabsManager(
     private var grant: RemoteGrant? = null
     private var controller: ControllerSession? = null
     private var sharedTestId: Long? = null
+    /** Não notificar um teste histórico sem termos observado que estava em andamento. */
+    private val completionTracker = RemoteChargeCompletion()
 
     fun startHosting() {
         if (hostJob?.isActive == true) return
@@ -379,6 +383,7 @@ class RemoteLabsManager(
                 val snapshot = if (online) runCatching {
                     RemoteSnapshot.fromJson(response!!.getJSONObject("snapshot"))
                 }.getOrNull() else null
+                if (snapshot != null) alertIfRemoteChargeFinished(session, snapshot)
                 mutable.value = mutable.value.copy(
                     connected = online && snapshot != null, snapshot = snapshot,
                     statusMessage = if (online && snapshot != null) "Conectado" else if (response?.optString("code") == "DENIED") "Acesso encerrado pelo celular monitorado." else "Conexão perdida. Tentando reconectar à sessão autorizada…",
@@ -425,6 +430,7 @@ class RemoteLabsManager(
                 val snapshot=if(response?.optBoolean("ok")==true) runCatching {
                     RemoteSnapshot.fromJson(response.getJSONObject("snapshot"))
                 }.getOrNull() else null
+                if(snapshot!=null) alertIfRemoteChargeFinished(session, snapshot)
                 if(snapshot!=null && !touched) { remembered.touch(id); touched=true }
                 if(denied) remembered.forget(id)
                 mutable.value=mutable.value.copy(connected=snapshot!=null,snapshot=snapshot,
@@ -623,6 +629,37 @@ class RemoteLabsManager(
     }
 
     private fun newEndpoint(ip: String, port: Int) = RemoteEndpoint(ip, port, newSecret(), displayName(Build.MODEL ?: "Celular A"))
+
+    /** Apenas o CONTROLADOR é avisado, uma vez por teste, após perceber o fim da carga. */
+    private fun alertIfRemoteChargeFinished(session: ControllerSession, snapshot: RemoteSnapshot) {
+        val message = completionTracker.observe(session.clientId, snapshot.activeId,
+            snapshot.activeKind, snapshot.testRunning, snapshot.activeStatus) ?: return
+        showCompletionNotification(snapshot.deviceName.ifBlank { session.endpoint.deviceName }, message,
+            snapshot.activeId ?: return)
+    }
+
+    private fun showCompletionNotification(name: String, detail: String, testId: Long) {
+        if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(
+                context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
+        val manager = context.getSystemService(NotificationManager::class.java)
+        manager.createNotificationChannel(NotificationChannel(COMPLETION_CHANNEL_ID,
+            "Conclusão de carga remota", NotificationManager.IMPORTANCE_DEFAULT))
+        val open = PendingIntent.getActivity(context, 73, Intent(context, MainActivity::class.java).apply {
+            putExtra("open_labs", true)
+            flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        }, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+        val safeName = displayName(name)
+        val notification = NotificationCompat.Builder(context, COMPLETION_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle("Carga em $safeName concluída")
+            .setContentText(detail)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(detail))
+            .setContentIntent(open)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        runCatching { manager.notify(30_000 + (testId % 10_000L).toInt(), notification) }
+    }
 
     private fun showAccessNotification(name: String) {
         if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(

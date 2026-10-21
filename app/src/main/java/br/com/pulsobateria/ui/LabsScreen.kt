@@ -6,6 +6,12 @@ import androidx.compose.foundation.clickable
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import android.widget.Toast
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
@@ -84,10 +90,23 @@ private fun estimatedFullLabel(targetMs: Long, nowMs: Long): String {
 @Composable
 fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Boolean) -> Unit) {
  val lifecycleOwner = LocalLifecycleOwner.current
+ val context = LocalContext.current
+ var askedRemoteNotification by rememberSaveable { mutableStateOf(false) }
+ val notificationPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { _ -> }
+
  val active by vm.labCurrent.collectAsStateWithLifecycle()
  val reading by vm.reading.collectAsStateWithLifecycle()
  val history by vm.labHistory.collectAsStateWithLifecycle()
  val remoteUi by vm.remoteUi.collectAsStateWithLifecycle()
+ // O aviso de conclusão chega ao controlador; pedir permissão só depois de parear.
+ LaunchedEffect(remoteUi.role, remoteUi.connected) {
+  if(remoteUi.role==RemoteRole.CONTROLLER && remoteUi.connected && !askedRemoteNotification &&
+   Build.VERSION.SDK_INT>=33 &&
+   ContextCompat.checkSelfPermission(context,Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED) {
+   askedRemoteNotification=true
+   notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+  }
+ }
  var page by rememberSaveable { mutableStateOf("home") }
  var solarCompareFirst by rememberSaveable { mutableStateOf<Long?>(null) }
  var solarCompareSecond by rememberSaveable { mutableStateOf<Long?>(null) }
@@ -1058,10 +1077,14 @@ private fun RemoteMonitorCard(snapshot: RemoteSnapshot?, connected: Boolean, dev
         fontWeight=FontWeight.Bold,color=MaterialTheme.colorScheme.onPrimaryContainer)
       }
       Column(horizontalAlignment=Alignment.End) {
-       Text("Ganho no teste",style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onPrimaryContainer)
+       Text(if(snapshot?.activeKind=="DISCHARGE") "Variação no teste" else "Ganho no teste",
+        style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onPrimaryContainer)
+       // O Android fornece percentual inteiro: a unidade visual é %, sem inventar décimos.
        Text(if(snapshot?.initialPercent!=null && snapshot.finalPercent!=null)
-        "${if(snapshot.finalPercent-snapshot.initialPercent>=0) "+" else ""}${snapshot.finalPercent-snapshot.initialPercent} p.p." else "--",
+        "${if(snapshot.finalPercent-snapshot.initialPercent>=0) "+" else ""}${snapshot.finalPercent-snapshot.initialPercent}%" else "--",
         style=MaterialTheme.typography.titleLarge,fontWeight=FontWeight.SemiBold,color=MaterialTheme.colorScheme.onPrimaryContainer)
+       if(snapshot?.activeKind=="AUTO") Text("Carga automática",style=MaterialTheme.typography.labelSmall,
+        color=MaterialTheme.colorScheme.onPrimaryContainer)
       }
      }
      LinearProgressIndicator(progress={(snapshot?.batteryPercent ?: 0).coerceIn(0,100)/100f},
@@ -1091,9 +1114,9 @@ private fun RemoteMonitorCard(snapshot: RemoteSnapshot?, connected: Boolean, dev
    }
    Row(horizontalArrangement=Arrangement.spacedBy(8.dp),modifier=Modifier.fillMaxWidth()) {
     RemoteMetricCard("Corrente líquida",snapshot?.currentMa?.let { "${if(it>=0) "+" else ""}${it.roundToInt()}" } ?: "--",
-     suffix="mA",modifier=Modifier.weight(1f))
-    RemoteMetricCard("Temperatura",snapshot?.temperatureC?.let { "%.1f°C".format(Locale.getDefault(),it) } ?: "--",
-     modifier=Modifier.weight(1f))
+     unit="mA",modifier=Modifier.weight(1f))
+    RemoteMetricCard("Temperatura",snapshot?.temperatureC?.let { "%.1f".format(Locale.getDefault(),it) } ?: "--",
+     unit="°C",modifier=Modifier.weight(1f))
    }
    if(snapshot?.activeId!=null) Text("⏱️ Tempo do teste: ${duration(snapshot.testElapsedMs)}",style=MaterialTheme.typography.titleMedium,
     fontWeight=FontWeight.SemiBold)
@@ -1155,14 +1178,16 @@ private fun RemoteMonitorCard(snapshot: RemoteSnapshot?, connected: Boolean, dev
 }
 
 @Composable
-private fun RemoteMetricCard(title: String, value: String, suffix: String = "", progress: Float? = null, modifier: Modifier = Modifier) {
- Card(modifier=modifier, shape=RoundedCornerShape(24.dp), colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surfaceVariant)) {
-  Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement=Arrangement.spacedBy(10.dp)) {
-   Text(title, style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurfaceVariant)
-   Text(value, style=MaterialTheme.typography.headlineMedium, fontWeight=FontWeight.Bold)
-   if(suffix.isNotBlank()) Text(suffix, style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurfaceVariant)
-   if(progress != null) {
-    LinearProgressIndicator(progress={ progress.coerceIn(0f,1f) }, modifier=Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(20.dp)), color=MaterialTheme.colorScheme.secondary, trackColor=MaterialTheme.colorScheme.outlineVariant)
+private fun RemoteMetricCard(title: String, value: String, unit: String, modifier: Modifier = Modifier) {
+ Card(modifier=modifier.height(132.dp), shape=RoundedCornerShape(24.dp),
+  colors=CardDefaults.cardColors(containerColor=MaterialTheme.colorScheme.surfaceVariant)) {
+  Column(Modifier.fillMaxWidth().padding(16.dp), verticalArrangement=Arrangement.spacedBy(14.dp)) {
+   Text(title, style=MaterialTheme.typography.titleMedium, color=MaterialTheme.colorScheme.onSurfaceVariant,
+    maxLines=2)
+   Row(verticalAlignment=Alignment.Bottom,horizontalArrangement=Arrangement.spacedBy(4.dp)) {
+    Text(value, style=MaterialTheme.typography.headlineSmall,fontWeight=FontWeight.Bold,
+     maxLines=1,modifier=Modifier.weight(1f,fill=false))
+    Text(unit, style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.onSurfaceVariant)
    }
   }
  }

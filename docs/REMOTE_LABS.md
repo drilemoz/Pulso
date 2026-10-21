@@ -38,3 +38,22 @@
 ## Alpha.72: testes sem prazo fixo e ETA destacado
 
 Ao configurar Solar ou Elétrico remotamente, não é mais obrigatório escolher duração. O controlador envia `minutes=null` e mantém seleção de céu/painel quando solar e a opção de finalizar aos 100%. O cartão principal do painel mostra a estimativa de hora de 100%, quando o celular monitorado informou evidência suficiente; caso contrário exibe **Aguardando medições**. Testes de Consumo locais seguem sem previsão até definir um ponto final confiável. A listagem de aparelhos recentes e o protocolo LAN v2 permanecem inalterados.
+
+## Alpha.73: conclusão no controlador
+
+O celular que está sendo monitorado já encerra automaticamente Solar, Elétrico e
+AUTO em leitura nova de bateria a 100% (quando a opção está ativa): primeiro
+persiste a amostra e o registro final, e depois atualiza o status para `FULL`.
+O aparelho monitorado recebe a notificação local existente.
+
+O controlador recebe uma notificação própria ao observar a transição
+`RUNNING` → `FULL`, `UNPLUGGED`, `COMPLETED` ou `STOPPED` de um mesmo teste de
+carga. O aviso depende de permissão de notificações e das consultas LAN
+continuarem funcionando; ele não é uma mensagem enviada pela internet e
+não é garantido se o Android suspender o aplicativo controlador, a rede cair
+ou o processo for encerrado. Não gerar alertas de testes históricos vistos
+pela primeira vez após concluídos nem repetir a notificação durante polling.
+
+O ganho no painel mostra a diferença dos percentuais inteiros do Android
+em pontos de bateria com rótulo visual `%` (sem precisão decimal inventada).
+Os cartões de corrente e temperatura possuem mesma altura.

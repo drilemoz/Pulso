@@ -1,3 +1,14 @@
+# Validação 0.1.0-alpha.73 (20/10/2026)
+
+- O status `FULL` já é produzido por `LabFullCharge.shouldStop` somente para SOLAR/ELECTRIC/AUTO em nova leitura Android de 100%, posterior ao início do teste e à leitura anterior. Em `LabController.observe`, o resumo é atualizado no banco **antes** de `finishLocked(..., "FULL")`, que persiste o status, encerra o teste, mantém o relatório e publica a notificação local (quando autorizada). A carga física não é desligada.
+- Cartões de Corrente e Temperatura do monitoramento remoto passaram a ter 132 dp de altura, unidades na mesma linha e mesma hierarquia tipográfica. Ganho percentual usa diferença entre inteiros do Android com sufixo `%`; não representa precisão decimal nem mudança relativa da capacidade.
+- Nova notificação no controlador: processamento dos estados recebidos por polling observa `RUNNING` antes de avisar uma única vez ao chegar a `FULL`, `UNPLUGGED`, `COMPLETED` ou `STOPPED`, apenas para testes de carga. É separada da notificação de acesso ativo no host. O controlador solicita `POST_NOTIFICATIONS` após pareamento em Android 13+ se ainda não concedida.
+- Limitações: não há push externo nem canal de controle permanente garantido se o Android suspender/encerrar o processo do controlador; a notificação remota depende de polling ativo, conectividade LAN e permissão. O app monitorado continua salvando os dados independentemente do aviso remoto. Não houve alteração de Room v11, backup JSON v9 ou formato de rede.
+- `24` scripts `tools/test_*.py`: **aprovados**, inclusive `tools/test_remote_completion_ui.py` com 19 contratos de UI, permissão, notificação, fluxo FULL e persistência, migrações SQLite e versionamento.
+- Kotlin/JVM local: `RemoteChargeCompletion` compilou e executou 16 verificações reais de conclusão, repetição, tipo de teste e sessão. `bash tools/run_external_labs_policy_test.sh`: 16 invariantes aprovados. `bash tools/run_math_audit.sh`: 15 grupos de cálculo aprovados.
+- Análise sintática via Kotlin PSI: 86 arquivos `.kt`, sem erros. Gradle Wrapper SHA-256/CRC e release gate de Novidades: aprovados. Isso não equivale à compilação Android completa.
+- Tentativa de `./gradlew :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --offline --no-daemon`: bloqueada ANTES da compilação por `UnknownHostException: services.gradle.org` ao instalar Gradle 8.11.1. Build Android, testes instrumentados e notificação em dois aparelhos com tela apagada precisam de validação física.
+
 # Validação 0.1.0-alpha.72 (20/10/2026)
 
 - A interface Solar, Elétrico e Consumo não exige mais duração; os três formulários enviam `minutes=null`, inclusive o remoto para Solar/Elétrico. A medição termina manualmente ou, em carga com opção ativa, na leitura nova de 100%. O modo AUTO mantém sua regra específica de desconexão.

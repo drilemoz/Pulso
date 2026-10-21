@@ -1,3 +1,16 @@
+# Validação 0.1.0-alpha.70 (20/10/2026)
+
+- UI Labs: início, término programado, tempo decorrido, tempo restante; em testes manuais informa que não há prazo. Histórico expandido e relatório copiado mostram prazo original e fim efetivo.
+- LAN v2: envia `startedAtMs`, `deadlineAtMs`, `endedAtMs` e `estimatedFullAtMs` junto de estado/medições, sem calcular prazo a partir do horário da conexão.
+- Core `LabTimeForecast`: ETA observacional apenas para Solar/Elétrico em CHARGING com duração mínima, avanço percentual, cobertura e leitura recente; nunca inventa estimativa na ausência de evidência.
+- Mantidos Room v11, backup JSON v9, modelos de medições e regra de encerramento automático aos 100%; não há migrações nesta release.
+- Verificações locais: 21 scripts `tools/test_*.py` aprovados, inclusive 20 regras estáticas para os horários do Labs e 9 cenários de controle de Novidades. `tools/validate_source.py` e `tools/test_release_consistency.py` aprovados.
+- Kotlin/JVM 1.9: nova função `LabTimeForecast` compilada e validada por 18 verificações executáveis; 6 métodos de `LabTimeForecastTest` aprovados via substituto compatível das asserções JUnit (não é Gradle/JUnit oficial).
+- `bash tools/run_math_audit.sh`: 15 grupos existentes de cálculo aprovados. `bash tools/run_external_labs_policy_test.sh`: 16 invariantes de segurança e integração aprovados.
+- Parser PSI do Kotlin: 81 arquivos de produção/teste analisados, nenhum erro sintático. ZIP deve manter Wrapper oficial e estrutura do repositório.
+- Tentativa de `./gradlew :core:test :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest --offline --no-daemon`: bloqueada ANTES de compilar por `UnknownHostException: services.gradle.org` ao baixar Gradle 8.11.1.
+- Build Android, teste oficial JUnit/KSP/Room, precisão de relógio/prazo, testes de reinício/tela apagada e comunicação real entre dois celulares ainda **pendentes**. Não declarar beta validada.
+
 # Validação 0.1.0-alpha.69 (20/10/2026)
 
 - Labs Monitoramento Remoto 2.0: escolha de papel por janela, câmera integrada ao diálogo em retrato, controle do flash e permissão contextual.

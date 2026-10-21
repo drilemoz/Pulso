@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import br.com.pulsobateria.core.LabMath
+import br.com.pulsobateria.core.LabTimeForecast
 import br.com.pulsobateria.core.LabTemperature
 import br.com.pulsobateria.core.LabReportMath
 import br.com.pulsobateria.core.LabComparisonQuality
@@ -62,6 +63,13 @@ private fun duration(ms: Long): String {
 }
 private fun date(time: Long): String = SimpleDateFormat("dd/MM/yyyy HH:mm",Locale.getDefault()).format(Date(time))
 private fun dateCompact(time: Long): String = SimpleDateFormat("dd/MM HH:mm",Locale.getDefault()).format(Date(time))
+/** O arredondamento de exibição não altera a estimativa subjacente. */
+private fun estimatedFullLabel(targetMs: Long, nowMs: Long): String {
+ val step = 300_000L
+ if (targetMs <= nowMs || targetMs > Long.MAX_VALUE-(step-1)) return "Indisponível"
+ val rounded = ((targetMs+step-1)/step)*step
+ return "~${dateCompact(rounded)}"
+}
 
 @Composable
 fun LabsScreen(vm: PulsoViewModel, modifier: Modifier = Modifier, onMonitor: (Boolean) -> Unit) {
@@ -611,6 +619,48 @@ private fun LabPanel(title: String, content: @Composable ColumnScope.() -> Unit)
  }
 }
 
+/** Datas civis reais e estimativa de 100% são conceitos diferentes.
+ * A estimativa não substitui o término programado nem antecipa a conclusão do teste. */
+@Composable
+private fun LabTimeSummary(
+ startedAtMs: Long, deadlineAtMs: Long?, nowMs: Long, elapsedMs: Long,
+ running: Boolean, endedAtMs: Long?, estimatedFullAtMs: Long?, remoteRemainingMs: Long? = null
+) {
+ val remainingMs = if(!running) null else remoteRemainingMs ?:
+  deadlineAtMs?.let { (it-nowMs).coerceAtLeast(0L) }
+ Column(verticalArrangement=Arrangement.spacedBy(7.dp),modifier=Modifier.fillMaxWidth()) {
+  Text("Horários do teste",style=MaterialTheme.typography.titleSmall,fontWeight=FontWeight.SemiBold)
+  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+   LabTimeItem("Início",dateCompact(startedAtMs),Modifier.weight(1f))
+   LabTimeItem("Término programado",deadlineAtMs?.let(::dateCompact) ?: "Manual",Modifier.weight(1f))
+  }
+  Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
+   LabTimeItem("Tempo decorrido",duration(elapsedMs),Modifier.weight(1f))
+   LabTimeItem(if(running) "Tempo restante" else "Fim efetivo",
+    if(running) remainingMs?.let(::duration) ?: "Sem prazo"
+    else endedAtMs?.let(::dateCompact) ?: "Indisponível",Modifier.weight(1f))
+  }
+  if(running && estimatedFullAtMs!=null) {
+   Text("100% previsto: ${estimatedFullLabel(estimatedFullAtMs,nowMs)}",
+    style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.primary,
+    fontWeight=FontWeight.SemiBold)
+   Text("Estimativa pelo ganho percentual observado; o ritmo pode mudar. Não é o prazo do teste.",
+    style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+  } else if(running && deadlineAtMs==null) {
+   Text("Teste manual: sem horário fixo de encerramento.",
+    style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+  }
+ }
+}
+
+@Composable
+private fun LabTimeItem(title: String,value: String,modifier: Modifier=Modifier) {
+ Column(modifier,verticalArrangement=Arrangement.spacedBy(2.dp)) {
+  Text(title,style=MaterialTheme.typography.labelSmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+  Text(value,style=MaterialTheme.typography.bodyMedium,fontWeight=FontWeight.SemiBold)
+ }
+}
+
 @Composable
 private fun RunningLabCard(test: LabTest,now: Long,vm: PulsoViewModel) {
  val total=(now-test.startedAt).coerceAtLeast(0).let { if(test.targetMs!=null) it.coerceAtMost(test.targetMs) else it }
@@ -618,8 +668,10 @@ private fun RunningLabCard(test: LabTest,now: Long,vm: PulsoViewModel) {
  val discharge=test.kind=="DISCHARGE"
  val electric=test.kind=="ELECTRIC"
  LabPanel(if(discharge) "⏱️ Consumo em andamento" else if(electric) "⏱️ Carregamento elétrico em andamento" else "⏱️ Teste solar em andamento") {
-  Text(duration(total),style=MaterialTheme.typography.headlineLarge,fontWeight=FontWeight.Bold)
-  if(test.deadlineAt != null) Text("Restante: ${duration((test.deadlineAt-now).coerceAtLeast(0))}")
+  val fullPrediction = LabTimeForecast.fullAt(
+   test.kind, true, test.startedAt, test.lastReadingAt, now,
+   test.initialPercent, test.finalPercent, test.chargingMs, test.lastMode)
+  LabTimeSummary(test.startedAt, test.deadlineAt, now, total, true, null, fullPrediction)
   if(!discharge && test.stopAtFull) Text("✓ Finalização automática ao atingir 100%", style=MaterialTheme.typography.bodySmall, color=MaterialTheme.colorScheme.primary)
   if(!discharge && !electric) Text("Céu: ${skyLabel(test.sky)} • Painel: ${test.panelWatts ?: "?"} W")
   else if(electric) Text("Fonte detectada: ${test.electricSource} (conforme Android)")
@@ -688,7 +740,8 @@ private fun reportText(test: LabTest): String {
    else -> "Pulso Bateria • Teste Solar (${test.panelWatts ?: "?"} W)"
   })
   appendLine("Início: ${date(test.startedAt)}")
-  appendLine("Fim: ${date(test.endedAt ?: test.startedAt)}")
+  appendLine("Término programado: ${test.deadlineAt?.let(::date) ?: "Manual (sem prazo)"}")
+  appendLine("Fim efetivo: ${date(test.endedAt ?: test.startedAt)}")
   appendLine("Duração: ${duration(total)}")
   appendLine("Bateria: ${percentText(test.initialPercent)} → ${percentText(test.finalPercent)}")
   appendLine("Encerramento: ${if(test.status=="FULL") "Automático ao atingir 100%" else if(test.status=="COMPLETED") "Automático por duração" else "Manual"}")
@@ -836,8 +889,9 @@ private fun LabResult(test: LabTest, onDelete: (Long) -> Unit) {
      color=MaterialTheme.colorScheme.onSurfaceVariant)
     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(12.dp)) {
      LabDateCell("Início",dateCompact(test.startedAt),Modifier.weight(1f))
-     LabDateCell("Fim",dateCompact(test.endedAt ?: test.startedAt),Modifier.weight(1f))
+     LabDateCell("Fim efetivo",dateCompact(test.endedAt ?: test.startedAt),Modifier.weight(1f))
     }
+    LabResultRow("Término programado", test.deadlineAt?.let(::dateCompact) ?: "Manual (sem prazo)")
     Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(10.dp),
      verticalAlignment=Alignment.CenterVertically) {
      TextButton(onClick={expanded=false}) { Text("Recolher ↑") }
@@ -1003,7 +1057,14 @@ private fun RemoteMonitorCard(snapshot: RemoteSnapshot?, connected: Boolean, dev
       RemoteStatusRow("Temperatura final/última",temperatureText(snapshot.finalTemperatureC))
       RemoteStatusRow("Temperatura máxima",temperatureText(snapshot.maxTemperatureC))
       if(snapshot.activeKind=="ELECTRIC") RemoteStatusRow("Fonte detectada",snapshot.electricSource ?: "Indisponível")
-      if(snapshot.targetMs!=null && snapshot.testRunning) RemoteStatusRow("Prazo restante",duration((snapshot.targetMs-snapshot.testElapsedMs).coerceAtLeast(0L)))
+      snapshot.startedAtMs?.let { started ->
+       LabTimeSummary(
+        started, snapshot.deadlineAtMs, System.currentTimeMillis(), snapshot.testElapsedMs,
+        snapshot.testRunning, snapshot.endedAtMs, snapshot.estimatedFullAtMs,
+        // Duração restante no controlador vem do tempo registrado pelo aparelho monitorado.
+        remoteRemainingMs = if(snapshot.testRunning && snapshot.targetMs!=null)
+         (snapshot.targetMs-snapshot.testElapsedMs).coerceAtLeast(0L) else null)
+      }
       RemoteStatusRow("Finalizar aos 100%",if(snapshot.stopAtFull) "Ativo" else "Desativado")
       HorizontalDivider()
       RemoteStatusRow("Carregando",duration(snapshot.chargingMs))

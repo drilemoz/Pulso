@@ -1,3 +1,11 @@
+## 0.1.0-alpha.70 (20/10/2026)
+
+- Labs mostra horário de início, término programado, duração transcorrida e tempo restante nos testes Solar, Elétrico e Consumo.
+- O painel remoto recebe os horários reais do aparelho monitorado e diferencia prazo, tempo restante e fim efetivo.
+- Testes de carga exibem previsão aproximada de 100% somente com ganho percentual e intervalos de carga suficientes.
+- Testes manuais informam ausência de prazo, e relatórios e histórico passam a indicar o término programado.
+- Novas verificações protegem horários, leituras antigas, lacunas e a separação entre previsão de carga e prazo do teste.
+
 ## 0.1.0-alpha.69 (20/10/2026)
 
 - Monitoramento remoto agora abre escolha entre ser monitorado e monitorar outro aparelho, com troca de função explícita.

@@ -16,7 +16,7 @@ checks = {
  "Sticky test action": 'if(isConfigPage)' in screen and 'align(Alignment.BottomCenter)' in screen and 'Iniciar teste solar' in screen,
  "Recent and complete test lists": 'completed.take(3)' in screen and 'items(completed,key={it.id})' in screen,
  "Solar, discharge, manual remain": all(v in screen for v in ('page=="solar"','startDischargeLab','"manual" to "Manual"')),
- "Date fields share one row": 'LabDateCell("Início"' in screen and 'LabDateCell("Fim"' in screen and 'Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(12.dp))' in screen,
+ "Date fields share one row": 'LabDateCell("Início"' in screen and 'LabDateCell("Fim efetivo"' in screen and 'Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.spacedBy(12.dp))' in screen,
  "Actions paired in footer": all(fragment in screen for fragment in ('Text("Recolher ↑")','Text("Copiar")','Text("Excluir")','onClick={confirmDelete=true}')),
  "Deletion requires confirmation": 'if(confirmDelete) AlertDialog(' in screen and 'onDelete(test.id)' in screen,
  "No delete on running card": 'onDelete' not in screen.split('private fun RunningLabCard(',1)[1].split('private fun LabResult(',1)[0],

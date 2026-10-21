@@ -14,6 +14,7 @@ import androidx.core.app.NotificationCompat
 import br.com.pulsobateria.MainActivity
 import br.com.pulsobateria.R
 import br.com.pulsobateria.core.LabMath
+import br.com.pulsobateria.core.LabTimeForecast
 import br.com.pulsobateria.data.LabTest
 import br.com.pulsobateria.monitor.BatteryRepository
 import kotlinx.coroutines.CancellationException
@@ -96,6 +97,10 @@ data class RemoteSnapshot(
     val temperatureC: Double? = null,
     val testElapsedMs: Long = 0L,
     val targetMs: Long? = null,
+    val startedAtMs: Long? = null,
+    val deadlineAtMs: Long? = null,
+    val endedAtMs: Long? = null,
+    val estimatedFullAtMs: Long? = null,
     val testRunning: Boolean = false,
     val chargingMs: Long = 0L,
     val notChargingMs: Long = 0L,
@@ -121,6 +126,10 @@ data class RemoteSnapshot(
             temperatureC = j.optDouble("temperatureC").takeIf { j.has("temperatureC") && it.isFinite() },
             testElapsedMs = j.optLong("testElapsedMs").coerceAtLeast(0),
             targetMs = j.optLong("targetMs").takeIf { j.has("targetMs") && it > 0 },
+            startedAtMs = j.optLong("startedAtMs").takeIf { j.has("startedAtMs") && it > 0 },
+            deadlineAtMs = j.optLong("deadlineAtMs").takeIf { j.has("deadlineAtMs") && it > 0 },
+            endedAtMs = j.optLong("endedAtMs").takeIf { j.has("endedAtMs") && it > 0 },
+            estimatedFullAtMs = j.optLong("estimatedFullAtMs").takeIf { j.has("estimatedFullAtMs") && it > 0 },
             testRunning = j.optBoolean("testRunning"),
             chargingMs = j.optLong("chargingMs").coerceAtLeast(0),
             notChargingMs = j.optLong("notChargingMs").coerceAtLeast(0),
@@ -147,6 +156,10 @@ data class RemoteSnapshot(
         if (temperatureC != null) put("temperatureC", temperatureC)
         put("testElapsedMs", testElapsedMs)
         if (targetMs != null) put("targetMs", targetMs)
+        if (startedAtMs != null) put("startedAtMs", startedAtMs)
+        if (deadlineAtMs != null) put("deadlineAtMs", deadlineAtMs)
+        if (endedAtMs != null) put("endedAtMs", endedAtMs)
+        if (estimatedFullAtMs != null) put("estimatedFullAtMs", estimatedFullAtMs)
         put("testRunning", testRunning)
         put("chargingMs", chargingMs)
         put("notChargingMs", notChargingMs)
@@ -511,6 +524,12 @@ class RemoteLabsManager(
             temperatureC = reading?.temperature,
             testElapsedMs = total,
             targetMs = test?.targetMs,
+            startedAtMs = test?.startedAt,
+            deadlineAtMs = test?.deadlineAt,
+            endedAtMs = test?.endedAt,
+            estimatedFullAtMs = active?.let { running -> LabTimeForecast.fullAt(
+                running.kind, true, running.startedAt, running.lastReadingAt, now,
+                running.initialPercent, running.finalPercent, running.chargingMs, running.lastMode) },
             testRunning = active != null,
             chargingMs = charging,
             notChargingMs = noCharge,

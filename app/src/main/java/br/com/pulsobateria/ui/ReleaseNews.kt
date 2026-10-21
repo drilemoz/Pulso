@@ -12,14 +12,14 @@ import br.com.pulsobateria.BuildConfig
 
 /** Alterações exclusivas do build atual. Atualizar obrigatoriamente em cada release. */
 internal object ReleaseNews {
- const val VERSION_NAME = "0.1.0-alpha.69"
- const val VERSION_CODE = 69
+ const val VERSION_NAME = "0.1.0-alpha.70"
+ const val VERSION_CODE = 70
  val ITEMS = listOf(
-  "Monitoramento remoto agora abre escolha entre ser monitorado e monitorar outro aparelho, com troca de função explícita.",
-  "Leitor QR foi integrado à janela vertical do Labs, com permissão de câmera sob demanda e controle da lanterna.",
-  "Controle LAN passa a iniciar testes solares e elétricos, com duração, condições e finalização opcional aos 100%.",
-  "Aparelho monitorado identifica o nome informado pelo controlador, mostra notificação de acesso e permite revogar pela tela ou notificação.",
-  "O novo pareamento usa QR temporário de uso único e sessão separada para reconexão; relatório permanece no aparelho medido.",
+  "Labs mostra horário de início, término programado, duração transcorrida e tempo restante nos testes Solar, Elétrico e Consumo.",
+  "O painel remoto recebe os horários reais do aparelho monitorado e diferencia prazo, tempo restante e fim efetivo.",
+  "Testes de carga exibem previsão aproximada de 100% somente com ganho percentual e intervalos de carga suficientes.",
+  "Testes manuais informam ausência de prazo, e relatórios e histórico passam a indicar o término programado.",
+  "Novas verificações protegem horários, leituras antigas, lacunas e a separação entre previsão de carga e prazo do teste.",
  )
 }
 

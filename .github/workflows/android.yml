@@ -45,6 +45,7 @@ jobs:
           python3 tools/test_labs_history.py
           python3 tools/test_electric_lab_contract.py
           python3 tools/test_labs_full_charge.py
+          python3 tools/test_lab_timing_contract.py
           python3 tools/test_labs_comparison_features.py
           python3 tools/test_labs_quality.py
           python3 tools/test_session_grouping_ui.py
@@ -95,7 +96,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: Pulso-Bateria-v0.1.0-alpha.69-validacao
+          name: Pulso-Bateria-v0.1.0-alpha.70-validacao
           path: |
             core/build/test-results/
             app/build/test-results/
@@ -108,7 +109,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          apk="Pulso-Bateria-v0.1.0-alpha.69-debug.apk"
+          apk="Pulso-Bateria-v0.1.0-alpha.70-debug.apk"
           cp app/build/outputs/apk/debug/app-debug.apk "$apk"
           sha256sum "$apk" | tee "$RUNNER_TEMP/apk-sha256.txt"
           if [[ "$PULSO_SIGNED" == true ]]; then
@@ -121,8 +122,8 @@ jobs:
       - name: Guardar APK do build, mesmo se Release falhar
         uses: actions/upload-artifact@v4
         with:
-          name: Pulso-Bateria-v0.1.0-alpha.69-debug
-          path: Pulso-Bateria-v0.1.0-alpha.69-debug.apk
+          name: Pulso-Bateria-v0.1.0-alpha.70-debug
+          path: Pulso-Bateria-v0.1.0-alpha.70-debug.apk
           retention-days: 30
           if-no-files-found: error
 
@@ -134,13 +135,13 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
-          apk="Pulso-Bateria-v0.1.0-alpha.69-debug.apk"
-          tag="apk-alpha.69-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          apk="Pulso-Bateria-v0.1.0-alpha.70-debug.apk"
+          tag="apk-alpha.70-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           for attempt in 1 2 3 4; do
             if gh release view "$tag" >/dev/null 2>&1; then
               if gh release upload "$tag" "$apk" --clobber; then break; fi
             elif gh release create "$tag" "$apk" --target "$GITHUB_SHA" \
-              --title 'Pulso Bateria 0.1.0-alpha.69 • APK Debug' \
+              --title 'Pulso Bateria 0.1.0-alpha.70 • APK Debug' \
               --notes-file RELEASE_NOTES.md --prerelease --latest=false; then
               break
             fi

@@ -1,14 +1,15 @@
-# Monitoramento remoto LAN v2 — alpha.69
+# Monitoramento remoto LAN v2 — alpha.70
 
 ## Como usar
 
-1. Instale a **mesma alpha.69** nos dois celulares. O formato de QR da alpha.68 (protocolo v1) **não é compatível** com o v2.
+1. Instale a **mesma alpha.70** nos dois celulares. O formato de QR da alpha.68 (protocolo v1) **não é compatível** com o v2.
 2. Conecte ambos à mesma rede Wi‑Fi ou a um hotspot em que clientes se enxerguem (alguns roteadores bloqueiam dispositivos entre si).
 3. No celular que ficará carregando, abra **Labs → Monitoramento remoto → Ser monitorado**. O aplicativo solicita monitoramento contínuo para que a leitura e o teste possam ocorrer com a tela apagada. Permita notificações quando solicitado.
 4. Gere e mostre o QR Code (válido por 5 min, um pareamento). No outro celular, abra **Labs → Monitoramento remoto → Monitorar outro celular** e escaneie pela janela vertical.
 5. Escolha no controlador Teste Solar ou Elétrico, configure duração, potência/condição de céu quando solar, e **Finalizar ao atingir 100%**.
 6. Enquanto o controlador estiver conectado, o monitorado mostra nome **declarado** pelo controlador e uma notificação com ação **Encerrar acesso**. A própria tela também possui este comando.
-7. O teste, leituras e relatórios ficam **no aparelho monitorado**. Ao finalizar, o controlador acompanha o último relatório compartilhado; a comunicação perdida nunca cria intervalos de medição falsos.
+7. O painel remoto apresenta início, fim programado, duração, tempo restante e eventual estimativa de 100%; essa estimativa é calculada no aparelho monitorado com leituras válidas e não substitui o prazo configurado.
+8. O teste, leituras e relatórios ficam **no aparelho monitorado**. Ao finalizar, o controlador acompanha o último relatório compartilhado; a comunicação perdida nunca cria intervalos de medição falsos.
 
 ## Segurança e limitações
 
